@@ -1,0 +1,22 @@
+/* ========================================================================
+   DEPRECATED: UserManagement.css
+   ========================================================================
+   
+   This file is DEPRECATED as of 2026-01-03.
+   All UserManagement styles have been consolidated into AdminDashboard.css
+   to serve as the single source of truth for admin panel styling.
+   
+   Classes that were here:
+   - .user-management-container
+   - .user-mgmt-*
+   - .user-reg-*
+   
+   This file is kept for backward compatibility but should no longer be edited.
+   Any changes should be made in AdminDashboard.css instead.
+   
+   REMOVE THIS FILE AFTER CONFIRMING NO REGRESSIONS.
+   ======================================================================== */
+
+/* All styles now in AdminDashboard.css */
+
+
