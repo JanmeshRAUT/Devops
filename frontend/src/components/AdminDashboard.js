@@ -14,6 +14,7 @@ import SystemLogs from "./admin/SystemLogs";
 import DoctorLogs from "./admin/DoctorLogs";
 import NurseLogs from "./admin/NurseLogs";
 import FlaggedEvents from "./admin/FlaggedEvents";
+import ThemeSwitcher from "./ThemeSwitcher";
 import "../css/AdminDashboard.css";
 import "../css/Notifications.css";
 
@@ -280,6 +281,7 @@ const AdminDashboard = ({ user, onLogout }) => {
             </p>
           </div>
           <div className="header-right">
+            <ThemeSwitcher />
             <NotificationCenter logs={doctorLogs} />
           </div>
         </header>

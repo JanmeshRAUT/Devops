@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { API_URL } from "../api";
+import ThemeSwitcher from "./ThemeSwitcher";
 import "../css/Patient.css";
 import "../css/Notifications.css";
 import {
@@ -115,9 +116,12 @@ const PatientDashboard = ({ user, onBack }) => {
               Your secure medical data access history is shown below
             </p>
           </div>
-          <button className="logout-button" onClick={handleBack}  title="Logout">
-            Logout
-          </button>
+          <div className="header-actions">
+            <ThemeSwitcher />
+            <button className="logout-button" onClick={handleBack} title="Logout">
+              Logout
+            </button>
+          </div>
         </div>
       </header>
 

@@ -8,6 +8,7 @@ import DoctorPatientsTab from "./doctor_tabs/DoctorPatientsTab";
 import DoctorAccessLogsTab from "./doctor_tabs/DoctorAccessLogsTab";
 import DoctorPermissionsTab from "./doctor_tabs/DoctorPermissionsTab";
 import DoctorAlertsTab from "./doctor_tabs/DoctorAlertsTab";
+import ThemeSwitcher from "./ThemeSwitcher";
 import { getAuth } from "firebase/auth";
 import {
   FaHospitalUser,
@@ -609,6 +610,7 @@ const DoctorDashboard = ({ user, onLogout }) => {
           </div>
 
           <div className="header-right">
+            <ThemeSwitcher />
             <div className="status-badge network">
               <FaCheckCircle /> {isInsideNetwork ? "In Network" : "External"}
             </div>

@@ -18,7 +18,7 @@
   padding: 0.625rem 0.75rem; /* Further reduced */
   margin-bottom: 0;
   border-bottom: 1px solid var(--color-border);
-  background: #f8fafc;
+  background: var(--surface-secondary);
 }
 
 /* List Content Area */
@@ -46,7 +46,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #f8fafc;
+  background: var(--surface-secondary);
 }
 
 .edit-column-body {
@@ -57,11 +57,16 @@
 
 /* Active Row Highlighting */
 .active-row {
-  background-color: #f0f9ff !important;
+  background-color: var(--primary-light) !important;
 }
 
 .active-row td {
   border-left: 3px solid var(--color-primary);
+}
+
+[data-theme="dark"] .active-row,
+.dark-mode .active-row {
+  background-color: rgba(129, 140, 248, 0.1) !important;
 }
 
 @media (max-width: 1024px) {
@@ -291,7 +296,7 @@ body {
 
 /* Header */
 .ehr-header {
-  background: linear-gradient(135deg, var(--color-surface) 0%, #fafbfc 100%);
+  background: linear-gradient(135deg, var(--color-surface) 0%, var(--surface-secondary) 100%);
   border-radius: var(--radius-lg);
   padding: 0.875rem 1.25rem;
   box-shadow: var(--shadow-md);
@@ -377,27 +382,57 @@ body {
 /* Badge Variants */
 .status-badge.network,
 .status-badge.success {
-  background-color: #ecfdf5;
-  color: #047857;
-  border-color: #a7f3d0;
+  background-color: var(--accent-light);
+  color: var(--accent-color);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+[data-theme="dark"] .status-badge.network,
+[data-theme="dark"] .status-badge.success,
+.dark-mode .status-badge.network,
+.dark-mode .status-badge.success {
+  background-color: rgba(52, 211, 153, 0.1);
+  color: #6ee7b7;
+  border-color: rgba(52, 211, 153, 0.3);
 }
 
 .status-badge.ip {
-  background-color: #eff6ff;
-  color: #1d4ed8;
-  border-color: #bfdbfe;
+  background-color: var(--primary-light);
+  color: var(--primary-color);
+  border-color: rgba(79, 70, 229, 0.3);
+}
+
+[data-theme="dark"] .status-badge.ip,
+.dark-mode .status-badge.ip {
+  background-color: rgba(129, 140, 248, 0.1);
+  color: #a5b4fc;
+  border-color: rgba(129, 140, 248, 0.3);
 }
 
 .status-badge.error {
-  background-color: #fef2f2;
-  color: #b91c1c;
-  border-color: #fecaca;
+  background-color: var(--danger-light);
+  color: var(--danger-color);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+[data-theme="dark"] .status-badge.error,
+.dark-mode .status-badge.error {
+  background-color: rgba(248, 113, 113, 0.1);
+  color: #fca5a5;
+  border-color: rgba(248, 113, 113, 0.3);
 }
 
 .status-badge.neutral {
-  background-color: #f8fafc;
-  color: #475569;
-  border-color: #e2e8f0;
+  background-color: var(--surface-secondary);
+  color: var(--text-secondary);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .status-badge.neutral,
+.dark-mode .status-badge.neutral {
+  background-color: rgba(100, 116, 139, 0.1);
+  color: #cbd5e1;
+  border-color: rgba(100, 116, 139, 0.3);
 }
 
 /* Hover Effect */
@@ -431,7 +466,7 @@ body {
 
 /* Sections */
 .ehr-section {
-  background: linear-gradient(135deg, var(--color-surface) 0%, #fafbfc 100%);
+  background: linear-gradient(135deg, var(--color-surface) 0%, var(--surface-secondary) 100%);
   border-radius: var(--radius-lg);
   padding: 0.95rem;
   box-shadow: var(--shadow-sm);
@@ -445,6 +480,11 @@ body {
   position: relative;
   overflow: hidden;
   flex-shrink: 1;
+}
+
+[data-theme="dark"] .ehr-section,
+.dark-mode .ehr-section {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
 }
 
 .ehr-section::before {
@@ -1042,45 +1082,6 @@ body {
    ========================================= */
 
 :root {
-  /* ============== COLOR PALETTE ============== */
-  /* Primary Colors */
-  --color-primary: #4f46e5;        /* Indigo-600 */
-  --color-primary-dark: #4338ca;   /* Indigo-700 */
-  --color-primary-light: #6366f1;  /* Indigo-500 */
-  --color-primary-lighter: #a5b4fc; /* Indigo-300 */
-  
-  /* Accent Colors */
-  --color-accent: #2563eb;         /* Blue-600 */
-  --color-success: #10b981;        /* Emerald-500 */
-  --color-success-dark: #059669;   /* Emerald-600 */
-  --color-danger: #ef4444;         /* Red-500 */
-  --color-danger-dark: #dc2626;    /* Red-600 */
-  --color-warning: #f59e0b;        /* Amber-500 */
-  --color-info: #06b6d4;           /* Cyan-500 */
-  
-  /* Neutral Colors */
-  --color-bg: #f8fafc;             /* Slate-50 */
-  --color-surface: #ffffff;        /* White */
-  --color-border: #e2e8f0;         /* Slate-200 */
-  --color-border-light: #f1f5f9;   /* Slate-100 */
-  --color-text: #1e293b;           /* Slate-800 */
-  --color-subtext: #64748b;        /* Slate-500 */
-  --color-text-light: #94a3b8;     /* Slate-400 */
-  
-  /* Background Variants */
-  --bg-light: #f9fafb;
-  --bg-lighter: #f1f5f9;
-  
-  /* Legacy Compatibility */
-  --primary: #4f46e5;
-  --accent: #2563eb;
-  --success: #10b981;
-  --danger: #ef4444;
-  --warning: #f59e0b;
-  --border: #e2e8f0;
-  --text: #1e293b;
-  --text-muted: #64748b;
-  
   /* ============== SPACING SCALE ============== */
   --spacing-xs: 0.25rem;    /* 4px */
   --spacing-sm: 0.5rem;     /* 8px */
@@ -1844,5 +1845,733 @@ body {
   opacity: 0.6;
   pointer-events: none;
   filter: grayscale(1);
+}
+
+/* ===========================
+   DARK MODE OVERRIDES
+   =========================== */
+
+/* Header & Section Backgrounds */
+[data-theme="dark"] .patients-list-column .section-header,
+[data-theme="dark"] .edit-column-header,
+.dark-mode .patients-list-column .section-header,
+.dark-mode .edit-column-header {
+  background: rgba(51, 65, 85, 0.3);
+}
+
+[data-theme="dark"] .active-row,
+.dark-mode .active-row {
+  background-color: rgba(129, 140, 248, 0.1) !important;
+}
+
+/* Header Gradient */
+[data-theme="dark"] .ehr-header,
+.dark-mode .ehr-header {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+}
+
+/* Section Gradients */
+[data-theme="dark"] .ehr-section,
+.dark-mode .ehr-section {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+}
+
+/* Badge Colors - Dark Mode */
+[data-theme="dark"] .status-badge.network,
+[data-theme="dark"] .status-badge.success,
+.dark-mode .status-badge.network,
+.dark-mode .status-badge.success {
+  background-color: rgba(52, 211, 153, 0.15);
+  color: #6ee7b7;
+  border-color: rgba(52, 211, 153, 0.3);
+}
+
+[data-theme="dark"] .status-badge.ip,
+.dark-mode .status-badge.ip {
+  background-color: rgba(129, 140, 248, 0.15);
+  color: #a5b4fc;
+  border-color: rgba(129, 140, 248, 0.3);
+}
+
+[data-theme="dark"] .status-badge.error,
+.dark-mode .status-badge.error {
+  background-color: rgba(248, 113, 113, 0.15);
+  color: #fca5a5;
+  border-color: rgba(248, 113, 113, 0.3);
+}
+
+[data-theme="dark"] .status-badge.neutral,
+.dark-mode .status-badge.neutral {
+  background-color: rgba(100, 116, 139, 0.1);
+  color: #cbd5e1;
+  border-color: rgba(100, 116, 139, 0.3);
+}
+
+/* Text Colors - Dark Mode */
+[data-theme="dark"] .patient-form-table tbody td,
+.dark-mode .patient-form-table tbody td {
+  color: var(--text-primary);
+  background: transparent;
+}
+
+[data-theme="dark"] .patient-form-table tbody tr:nth-child(odd) td,
+.dark-mode .patient-form-table tbody tr:nth-child(odd) td {
+  background: linear-gradient(135deg, rgba(129, 140, 248, 0.1) 0%, rgba(100, 116, 139, 0.05) 100%);
+  border-bottom-color: rgba(129, 140, 248, 0.2);
+}
+
+[data-theme="dark"] .patient-form-table td:last-child,
+.dark-mode .patient-form-table td:last-child {
+  background: rgba(51, 65, 85, 0.3);
+  border-top-color: rgba(51, 65, 85, 0.5);
+}
+
+/* Form Elements - Dark Mode */
+[data-theme="dark"] .access-section-heading,
+.dark-mode .access-section-heading {
+  background: linear-gradient(135deg, rgba(51, 65, 85, 0.2) 0%, rgba(30, 41, 59, 0.1) 100%);
+  border-color: rgba(51, 65, 85, 0.5);
+}
+
+[data-theme="dark"] .access-log-item,
+.dark-mode .access-log-item {
+  background: linear-gradient(135deg, rgba(129, 140, 248, 0.1) 0%, rgba(100, 116, 139, 0.05) 100%);
+  border-color: rgba(129, 140, 248, 0.2);
+}
+
+/* Status Indicators - Dark Mode */
+[data-theme="dark"] .status-indicator.granted,
+.dark-mode .status-indicator.granted {
+  background: linear-gradient(135deg, rgba(129, 140, 248, 0.2) 0%, rgba(129, 140, 248, 0.1) 100%);
+  color: #a5b4fc;
+}
+
+[data-theme="dark"] .status-indicator.success,
+.dark-mode .status-indicator.success {
+  background: linear-gradient(135deg, rgba(52, 211, 153, 0.2) 0%, rgba(52, 211, 153, 0.1) 100%);
+  color: #6ee7b7;
+}
+
+[data-theme="dark"] .status-indicator.denied,
+.dark-mode .status-indicator.denied {
+  background: linear-gradient(135deg, rgba(248, 113, 113, 0.2) 0%, rgba(248, 113, 113, 0.1) 100%);
+  color: #fca5a5;
+}
+
+[data-theme="dark"] .status-indicator.warning,
+.dark-mode .status-indicator.warning {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.2) 0%, rgba(251, 191, 36, 0.1) 100%);
+  color: #fbbf24;
+}
+
+/* Data Table Dark Mode */
+[data-theme="dark"] .access-log-item .timestamp,
+[data-theme="dark"] .access-log-item .access-type,
+.dark-mode .access-log-item .timestamp,
+.dark-mode .access-log-item .access-type {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .access-log-item .status,
+.dark-mode .access-log-item .status {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* Modal/Alert Backgrounds - Dark Mode */
+[data-theme="dark"] .info-alert,
+.dark-mode .info-alert {
+  background-color: rgba(129, 140, 248, 0.1);
+  border-color: rgba(129, 140, 248, 0.3);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .warning-alert,
+.dark-mode .warning-alert {
+  background-color: rgba(251, 191, 36, 0.1);
+  border-color: rgba(251, 191, 36, 0.3);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .error-alert,
+.dark-mode .error-alert {
+  background-color: rgba(248, 113, 113, 0.1);
+  border-color: rgba(248, 113, 113, 0.3);
+  color: var(--text-primary);
+}
+
+/* Ensure text readability in dark mode */
+[data-theme="dark"] tr,
+.dark-mode tr {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] td,
+[data-theme="dark"] th,
+.dark-mode td,
+.dark-mode th {
+  border-color: rgba(51, 65, 85, 0.5);
+  color: var(--text-primary);
+}
+
+/* Clean up light backgrounds that don't work in dark mode */
+[data-theme="dark"] .patient-form-table {
+  background: transparent;
+}
+
+[data-theme="dark"] .patient-form-table thead,
+.dark-mode .patient-form-table thead {
+  background-color: rgba(51, 65, 85, 0.3);
+  color: var(--text-primary);
+  border-color: rgba(51, 65, 85, 0.5);
+}
+
+/* Additional Dark Mode Text Enhancements */
+[data-theme="dark"] .ehr-sidebar nav ul li,
+.dark-mode .ehr-sidebar nav ul li {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .ehr-sidebar nav ul li:hover,
+.dark-mode .ehr-sidebar nav ul li:hover {
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .ehr-sidebar nav ul li.active,
+.dark-mode .ehr-sidebar nav ul li.active {
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .header-left h1,
+.dark-mode .header-left h1 {
+  color: var(--text-primary);
+  background: linear-gradient(135deg, #a5b4fc, #c7d2fe);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Ensure form inputs are readable in dark mode */
+[data-theme="dark"] input[type="text"],
+[data-theme="dark"] input[type="email"],
+[data-theme="dark"] input[type="number"],
+[data-theme="dark"] textarea,
+[data-theme="dark"] select,
+.dark-mode input[type="text"],
+.dark-mode input[type="email"],
+.dark-mode input[type="number"],
+.dark-mode textarea,
+.dark-mode select {
+  background-color: rgba(30, 41, 59, 0.5);
+  color: var(--text-primary);
+  border-color: rgba(51, 65, 85, 0.5);
+}
+
+[data-theme="dark"] input[type="text"]:focus,
+[data-theme="dark"] input[type="email"]:focus,
+[data-theme="dark"] input[type="number"]:focus,
+[data-theme="dark"] textarea:focus,
+[data-theme="dark"] select:focus,
+.dark-mode input[type="text"]:focus,
+.dark-mode input[type="email"]:focus,
+.dark-mode input[type="number"]:focus,
+.dark-mode textarea:focus,
+.dark-mode select:focus {
+  background-color: rgba(30, 41, 59, 0.7);
+  border-color: rgba(129, 140, 248, 0.5);
+  outline-color: rgba(129, 140, 248, 0.3);
+}
+
+/* Font & Text Color Fixes - Dark Mode */
+[data-theme="dark"] .info-box label,
+.dark-mode .info-box label {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .info-box span,
+.dark-mode .info-box span {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .form-group label,
+.dark-mode .form-group label {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .patient-info h3,
+[data-theme="dark"] .patient-info h2,
+[data-theme="dark"] .patient-info h1,
+.dark-mode .patient-info h3,
+.dark-mode .patient-info h2,
+.dark-mode .patient-info h1 {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .patient-age,
+.dark-mode .patient-age {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .info-row,
+.dark-mode .info-row {
+  border-bottom-color: var(--border-color);
+}
+
+[data-theme="dark"] .info-label,
+.dark-mode .info-label {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .info-value,
+.dark-mode .info-value {
+  color: var(--text-primary);
+}
+
+/* Additional Text Element Fixes */
+[data-theme="dark"] .record-form,
+.dark-mode .record-form {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .patient-card-body,
+.dark-mode .patient-card-body {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] h1,
+[data-theme="dark"] h2,
+[data-theme="dark"] h3,
+[data-theme="dark"] h4,
+[data-theme="dark"] h5,
+[data-theme="dark"] h6,
+.dark-mode h1,
+.dark-mode h2,
+.dark-mode h3,
+.dark-mode h4,
+.dark-mode h5,
+.dark-mode h6 {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] label,
+.dark-mode label {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .text-secondary,
+.dark-mode .text-secondary {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme="dark"] .text-muted,
+.dark-mode .text-muted {
+  color: var(--text-tertiary) !important;
+}
+
+/* Ensure form inputs have proper text sizes and colors */
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder,
+[data-theme="dark"] select,
+.dark-mode input::placeholder,
+.dark-mode textarea::placeholder,
+.dark-mode select {
+  color: var(--text-tertiary);
+}
+
+/* Card Text Colors */
+[data-theme="dark"] .access-card,
+[data-theme="dark"] .patient-card,
+[data-theme="dark"] .doctor-card,
+.dark-mode .access-card,
+.dark-mode .patient-card,
+.dark-mode .doctor-card {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .access-card h3,
+[data-theme="dark"] .patient-card h3,
+[data-theme="dark"] .doctor-card h3,
+.dark-mode .access-card h3,
+.dark-mode .patient-card h3,
+.dark-mode .doctor-card h3 {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .access-card p,
+[data-theme="dark"] .patient-card p,
+[data-theme="dark"] .doctor-card p,
+.dark-mode .access-card p,
+.dark-mode .patient-card p,
+.dark-mode .doctor-card p {
+  color: var(--text-secondary);
+}
+
+/* Table Text Colors */
+[data-theme="dark"] table,
+.dark-mode table {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] table thead th,
+.dark-mode table thead th {
+  color: var(--text-primary);
+  background-color: rgba(51, 65, 85, 0.3);
+}
+
+[data-theme="dark"] table tbody td,
+.dark-mode table tbody td {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] table tbody tr:hover,
+.dark-mode table tbody tr:hover {
+  background-color: rgba(129, 140, 248, 0.05);
+}
+
+/* Data Cell Text */
+[data-theme="dark"] .data-cell,
+.dark-mode .data-cell {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .data-label,
+.dark-mode .data-label {
+  color: var(--text-secondary);
+}
+
+/* Button Styles - Dark Mode */
+[data-theme="dark"] .btn-back-registry,
+.dark-mode .btn-back-registry {
+  background: rgba(30, 41, 59, 0.5);
+  border-color: rgba(51, 65, 85, 0.5);
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .btn-back-registry:hover,
+.dark-mode .btn-back-registry:hover {
+  background: rgba(51, 65, 85, 0.3);
+  color: var(--text-primary);
+  border-color: rgba(129, 140, 248, 0.5);
+}
+
+/* Patient Action Buttons - Dark Mode */
+[data-theme="dark"] .btn-patient-action,
+.dark-mode .btn-patient-action {
+  background: rgba(30, 41, 59, 0.5);
+  border-color: rgba(129, 140, 248, 0.5);
+  color: #a5b4fc;
+}
+
+[data-theme="dark"] .btn-patient-action:hover,
+.dark-mode .btn-patient-action:hover {
+  background: rgba(129, 140, 248, 0.15);
+  border-color: #818cf8;
+  color: #c7d2fe;
+}
+
+/* Patient Notes - Dark Mode */
+[data-theme="dark"] .patient-notes,
+.dark-mode .patient-notes {
+  background: rgba(251, 191, 36, 0.1);
+  border-left-color: #fbbf24;
+  color: #fbbf24;
+}
+
+[data-theme="dark"] .patient-notes strong,
+.dark-mode .patient-notes strong {
+  color: #fcd34d;
+}
+
+/* Empty State - Dark Mode */
+[data-theme="dark"] .empty-state,
+.dark-mode .empty-state {
+  color: var(--text-secondary);
+}
+
+/* Status Message Colors */
+[data-theme="dark"] .success-message,
+.dark-mode .success-message {
+  color: #6ee7b7;
+}
+
+[data-theme="dark"] .error-message,
+.dark-mode .error-message {
+  color: #fca5a5;
+}
+
+[data-theme="dark"] .warning-message,
+.dark-mode .warning-message {
+  color: #fbbf24;
+}
+
+[data-theme="dark"] .info-message,
+.dark-mode .info-message {
+  color: #a5b4fc;
+}
+
+/* Links - Dark Mode */
+[data-theme="dark"] a,
+.dark-mode a {
+  color: #a5b4fc;
+}
+
+[data-theme="dark"] a:hover,
+.dark-mode a:hover {
+  color: #c7d2fe;
+}
+
+[data-theme="dark"] a:visited,
+.dark-mode a:visited {
+  color: #a5b4fc;
+}
+
+/* Scrollbar Styling */
+[data-theme="dark"] ::-webkit-scrollbar,
+.dark-mode ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-track,
+.dark-mode ::-webkit-scrollbar-track {
+  background: rgba(30, 41, 59, 0.3);
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb,
+.dark-mode ::-webkit-scrollbar-thumb {
+  background: rgba(129, 140, 248, 0.4);
+  border-radius: 4px;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover,
+.dark-mode ::-webkit-scrollbar-thumb:hover {
+  background: rgba(129, 140, 248, 0.6);
+}
+
+/* Tooltip/Popover Styling */
+[data-theme="dark"] .tooltip,
+[data-theme="dark"] .popover,
+.dark-mode .tooltip,
+.dark-mode .popover {
+  background-color: rgba(30, 41, 59, 0.95);
+  color: var(--text-primary);
+  border: 1px solid rgba(51, 65, 85, 0.5);
+}
+
+/* Badge/Pill Styling */
+[data-theme="dark"] .badge,
+[data-theme="dark"] .pill,
+.dark-mode .badge,
+.dark-mode .pill {
+  background-color: rgba(129, 140, 248, 0.2);
+  color: #a5b4fc;
+}
+
+/* ===========================
+   FORM INPUTS & CARDS - DARK MODE
+   =========================== */
+
+/* Form Input Fields - Dark Mode */
+[data-theme="dark"] .form-group input,
+[data-theme="dark"] .form-group textarea,
+.dark-mode .form-group input,
+.dark-mode .form-group textarea {
+  background: #1e293b;
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .form-group input:focus,
+[data-theme="dark"] .form-group textarea:focus,
+.dark-mode .form-group input:focus,
+.dark-mode .form-group textarea:focus {
+  background: rgba(30, 41, 59, 0.8);
+  border-color: #818cf8;
+  box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.1);
+}
+
+/* Patient Cards - Dark Mode */
+[data-theme="dark"] .patient-card,
+.dark-mode .patient-card {
+  background: #1e293b;
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .patient-card:hover,
+.dark-mode .patient-card:hover {
+  background: rgba(30, 41, 59, 0.8);
+  border-color: rgba(129, 140, 248, 0.5);
+  box-shadow: 0 8px 20px rgba(129, 140, 248, 0.1);
+}
+
+[data-theme="dark"] .patient-card-header,
+.dark-mode .patient-card-header {
+  background: rgba(51, 65, 85, 0.3);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .patient-card-body,
+.dark-mode .patient-card-body {
+  background: transparent;
+}
+
+[data-theme="dark"] .patient-card-footer,
+.dark-mode .patient-card-footer {
+  background: rgba(51, 65, 85, 0.2);
+  border-color: var(--border-color);
+}
+
+/* Log Tables - Dark Mode */
+[data-theme="dark"] .log-table-wrapper,
+.dark-mode .log-table-wrapper {
+  background: #1e293b;
+  border-color: var(--border-color);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .log-table-wrapper:hover,
+.dark-mode .log-table-wrapper:hover {
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .log-table,
+.dark-mode .log-table {
+  background: transparent;
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .log-table th,
+.dark-mode .log-table th {
+  background: rgba(51, 65, 85, 0.3);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+  font-weight: 600;
+}
+
+[data-theme="dark"] .log-table td,
+.dark-mode .log-table td {
+  background: transparent;
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .log-table tbody tr:hover,
+.dark-mode .log-table tbody tr:hover {
+  background: rgba(129, 140, 248, 0.05);
+}
+
+/* Access Type Cards (Normal, Restricted, Emergency) - Dark Mode */
+[data-theme="dark"] [class*="access"],
+.dark-mode [class*="access"] {
+  background: #1e293b;
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .doctor-access-type-card,
+[data-theme="dark"] .access-type-card,
+[data-theme="dark"] .permission-card,
+.dark-mode .doctor-access-type-card,
+.dark-mode .access-type-card,
+.dark-mode .permission-card {
+  background: #1e293b;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .doctor-access-type-card:hover,
+[data-theme="dark"] .access-type-card:hover,
+[data-theme="dark"] .permission-card:hover,
+.dark-mode .doctor-access-type-card:hover,
+.dark-mode .access-type-card:hover,
+.dark-mode .permission-card:hover {
+  background: rgba(30, 41, 59, 0.8);
+  border-color: rgba(129, 140, 248, 0.5);
+  box-shadow: 0 4px 12px rgba(129, 140, 248, 0.1);
+}
+
+/* Ensure card titles are visible */
+[data-theme="dark"] .doctor-access-type-card h3,
+[data-theme="dark"] .access-type-card h3,
+[data-theme="dark"] .permission-card h3,
+.dark-mode .doctor-access-type-card h3,
+.dark-mode .access-type-card h3,
+.dark-mode .permission-card h3 {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .doctor-access-type-card p,
+[data-theme="dark"] .access-type-card p,
+[data-theme="dark"] .permission-card p,
+.dark-mode .doctor-access-type-card p,
+.dark-mode .access-type-card p,
+.dark-mode .permission-card p {
+  color: var(--text-secondary);
+}
+
+/* Modal/Dialog Boxes - Dark Mode */
+[data-theme="dark"] .modal,
+[data-theme="dark"] .dialog,
+[data-theme="dark"] [role="dialog"],
+.dark-mode .modal,
+.dark-mode .dialog,
+.dark-mode [role="dialog"] {
+  background: #1e293b;
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+/* Search Inputs - Dark Mode */
+[data-theme="dark"] .search-input,
+[data-theme="dark"] input[type="search"],
+.dark-mode .search-input,
+.dark-mode input[type="search"] {
+  background: #1e293b;
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .search-input::placeholder,
+[data-theme="dark"] input[type="search"]::placeholder,
+.dark-mode .search-input::placeholder,
+.dark-mode input[type="search"]::placeholder {
+  color: var(--text-tertiary);
+}
+
+/* Card Containers - Dark Mode */
+[data-theme="dark"] .card,
+[data-theme="dark"] .container,
+[data-theme="dark"] .panel,
+.dark-mode .card,
+.dark-mode .container,
+.dark-mode .panel {
+  background: #1e293b;
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+/* List Items - Dark Mode */
+[data-theme="dark"] .list-item,
+[data-theme="dark"] li,
+.dark-mode .list-item,
+.dark-mode li {
+  background: transparent;
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+/* Patient Registry Section - Dark Mode */
+[data-theme="dark"] .patient-registry,
+[data-theme="dark"] .doctor-access-section,
+.dark-mode .patient-registry,
+.dark-mode .doctor-access-section {
+  background: transparent;
+}
+
+/* Ensure visibility of all text in dark mode */
+[data-theme="dark"] *,
+.dark-mode * {
+  --tw-text-opacity: 1;
 }
 

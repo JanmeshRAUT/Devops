@@ -1,0 +1,340 @@
+/* ===========================
+   THEME CONFIGURATION
+   =========================== */
+
+/* Light Theme (Default) */
+:root,
+[data-theme="light"],
+.light-mode {
+  /* Primary Colors */
+  --primary-color: #4f46e5;
+  --primary-hover: #4338ca;
+  --primary-light: #eef2ff;
+  
+  /* Accent Colors */
+  --accent-color: #10b981;
+  --accent-hover: #059669;
+  --accent-light: #ecfdf5;
+  
+  /* Danger & Status Colors */
+  --danger-color: #ef4444;
+  --danger-hover: #dc2626;
+  --danger-light: #fee2e2;
+  --warning-color: #f59e0b;
+  --warning-light: #fef3c7;
+  --success-color: #10b981;
+  --success-light: #ecfdf5;
+  
+  /* Background Colors */
+  --bg-color: #f3f4f6;
+  --bg-secondary: #e5e7eb;
+  --bg-tertiary: #d1d5db;
+  --surface-color: #ffffff;
+  --surface-secondary: #f9fafb;
+  --surface-tertiary: #f3f4f6;
+  
+  /* Text Colors */
+  --text-primary: #111827;
+  --text-secondary: #4b5563;
+  --text-tertiary: #6b7280;
+  --text-light: #9ca3af;
+  --text-disabled: #d1d5db;
+  
+  /* Border & Divider Colors */
+  --border-color: #e5e7eb;
+  --border-light: #f3f4f6;
+  --divider-color: #e5e7eb;
+  
+  /* Glassmorphism Colors */
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.5);
+  --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+  
+  /* Shadow Colors */
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  
+  /* Form Elements */
+  --input-bg: #ffffff;
+  --input-border: #e5e7eb;
+  --input-text: #111827;
+  --input-placeholder: #9ca3af;
+  --input-focus-border: #4f46e5;
+  --input-focus-ring: rgba(79, 70, 229, 0.1);
+  
+  /* Component-specific */
+  --hover-bg-color: #e5e7eb;
+  --focus-color: #0066cc;
+  --primary-bg-color: #f5f5f5;
+  
+  /* Legacy/Alternative Naming Convention - Doctor Dashboard */
+  --color-primary: #4f46e5;
+  --color-primary-light: #eef2ff;
+  --color-surface: #ffffff;
+  --color-bg: #f3f4f6;
+  --color-text: #111827;
+  --color-subtext: #4b5563;
+  --color-border: #e5e7eb;
+  --color-accent: #10b981;
+  
+  /* Nurse Dashboard Colors */
+  --primary-50: #eff6ff;
+  --primary-100: #dbeafe;
+  --primary-200: #bfdbfe;
+  --primary-300: #93c5fd;
+  --primary-400: #60a5fa;
+  --primary-500: #3b82f6;
+  --primary-600: #2563eb;
+  --primary-700: #1d4ed8;
+  --primary-800: #1e40af;
+  --primary-900: #1e3a8a;
+  
+  --slate-50: #f8fafc;
+  --slate-100: #f1f5f9;
+  --slate-200: #e2e8f0;
+  --slate-300: #cbd5e1;
+  --slate-400: #94a3b8;
+  --slate-500: #64748b;
+  --slate-600: #475569;
+  --slate-700: #334155;
+  --slate-800: #1e293b;
+  --slate-900: #0f172a;
+  
+  --success-light: #dcfce7;
+  --success-main: #22c55e;
+  --success-dark: #15803d;
+  
+  --danger-light: #fee2e2;
+  --danger-main: #ef4444;
+  --danger-dark: #b91c1c;
+  
+  --bg-app: #f8fafc;
+  --bg-surface: #ffffff;
+  --color-text-main: #1e293b;
+  --color-text-muted: #64748b;
+  --color-primary-hover: #1d4ed8;
+  
+  /* Admin Dashboard Colors */
+  --med-primary: #0284c7;
+  --med-primary-dark: #0369a1;
+  --med-primary-light: #e0f2fe;
+  --med-secondary: #0f172a;
+  --med-accent: #0ea5e9;
+  
+  --status-success-bg: #dcfce7;
+  --status-success-text: #166534;
+  --status-warning-bg: #fef9c3;
+  --status-warning-text: #854d0e;
+  --status-critical-bg: #fee2e2;
+  --status-critical-text: #991b1b;
+  --status-info-bg: #f1f5f9;
+  --status-info-text: #475569;
+  
+  --bg-paper: #ffffff;
+  --bg-sidebar: #ffffff;
+  --text-main: #1e293b;
+  --text-muted: #64748b;
+  --text-light: #94a3b8;
+  --text-inverse: #ffffff;
+  --border-subtle: #e2e8f0;
+  --border-focus: #38bdf8;
+  
+  /* Legacy Compatibility */
+  --light-bg: var(--bg-color);
+  --text-color: var(--text-primary);
+}
+
+/* Dark Theme */
+[data-theme="dark"],
+.dark-mode {
+  /* Primary Colors */
+  --primary-color: #818cf8;
+  --primary-hover: #a5b4fc;
+  --primary-light: #1e1b4b;
+  
+  /* Accent Colors */
+  --accent-color: #34d399;
+  --accent-hover: #6ee7b7;
+  --accent-light: #064e3b;
+  
+  /* Danger & Status Colors */
+  --danger-color: #f87171;
+  --danger-hover: #fca5a5;
+  --danger-light: #7f1d1d;
+  --warning-color: #fbbf24;
+  --warning-light: #78350f;
+  --success-color: #34d399;
+  --success-light: #064e3b;
+  
+  /* Background Colors */
+  --bg-color: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-tertiary: #334155;
+  --surface-color: #1e293b;
+  --surface-secondary: #0f172a;
+  --surface-tertiary: #1e293b;
+  
+  /* Text Colors */
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-tertiary: #94a3b8;
+  --text-light: #64748b;
+  --text-disabled: #475569;
+  
+  /* Border & Divider Colors */
+  --border-color: #334155;
+  --border-light: #1e293b;
+  --divider-color: #334155;
+  
+  /* Glassmorphism Colors */
+  --glass-bg: rgba(30, 41, 59, 0.7);
+  --glass-border: rgba(148, 163, 184, 0.1);
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  
+  /* Shadow Colors */
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.6);
+  
+  /* Form Elements */
+  --input-bg: #1e293b;
+  --input-border: #334155;
+  --input-text: #f1f5f9;
+  --input-placeholder: #64748b;
+  --input-focus-border: #818cf8;
+  --input-focus-ring: rgba(129, 140, 248, 0.1);
+  
+  /* Component-specific */
+  --hover-bg-color: #334155;
+  --focus-color: #818cf8;
+  --primary-bg-color: #1e293b;
+  
+  /* Legacy/Alternative Naming Convention - Doctor Dashboard */
+  --color-primary: #818cf8;
+  --color-primary-light: #1e1b4b;
+  --color-surface: #1e293b;
+  --color-bg: #0f172a;
+  --color-text: #f1f5f9;
+  --color-subtext: #cbd5e1;
+  --color-border: #334155;
+  --color-accent: #34d399;
+  
+  /* Nurse Dashboard Colors */
+  --primary-50: #1e1b4b;
+  --primary-100: #312e81;
+  --primary-200: #3730a3;
+  --primary-300: #4f46e5;
+  --primary-400: #6366f1;
+  --primary-500: #818cf8;
+  --primary-600: #a5b4fc;
+  --primary-700: #c7d2fe;
+  --primary-800: #ddd6fe;
+  --primary-900: #ede9fe;
+  
+  --slate-50: #f8fafc;
+  --slate-100: #f1f5f9;
+  --slate-200: #e2e8f0;
+  --slate-300: #cbd5e1;
+  --slate-400: #94a3b8;
+  --slate-500: #64748b;
+  --slate-600: #475569;
+  --slate-700: #334155;
+  --slate-800: #1e293b;
+  --slate-900: #0f172a;
+  
+  --success-light: #064e3b;
+  --success-main: #34d399;
+  --success-dark: #6ee7b7;
+  
+  --danger-light: #7f1d1d;
+  --danger-main: #f87171;
+  --danger-dark: #fca5a5;
+  
+  --bg-app: #0f172a;
+  --bg-surface: #1e293b;
+  --color-text-main: #f1f5f9;
+  --color-text-muted: #cbd5e1;
+  --color-primary-hover: #c7d2fe;
+  
+  /* Admin Dashboard Colors */
+  --med-primary: #38bdf8;
+  --med-primary-dark: #0284c7;
+  --med-primary-light: #164e63;
+  --med-secondary: #f8fafc;
+  --med-accent: #06b6d4;
+  
+  --status-success-bg: #064e3b;
+  --status-success-text: #86efac;
+  --status-warning-bg: #78350f;
+  --status-warning-text: #fbbf24;
+  --status-critical-bg: #7f1d1d;
+  --status-critical-text: #fca5a5;
+  --status-info-bg: #1e293b;
+  --status-info-text: #cbd5e1;
+  
+  --bg-paper: #1e293b;
+  --bg-sidebar: #0f172a;
+  --text-main: #f1f5f9;
+  --text-muted: #cbd5e1;
+  --text-light: #94a3b8;
+  --text-inverse: #1e293b;
+  --border-subtle: #334155;
+  --border-focus: #38bdf8;
+  
+  /* Legacy Compatibility */
+  --light-bg: var(--bg-color);
+  --text-color: var(--text-primary);
+}
+
+/* ===========================
+   THEME APPLICATION BODY STYLES
+   =========================== */
+body {
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+body.light-mode {
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+}
+
+body.dark-mode {
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+}
+
+/* Prevent FOUC (Flash of Unstyled Content) */
+html[data-theme="dark"] body {
+  background-color: #0f172a;
+  color: #f1f5f9;
+}
+
+/* ===========================
+   SYSTEM PREFERENCE DETECTION
+   =========================== */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --primary-color: #818cf8;
+    --primary-hover: #a5b4fc;
+    --bg-color: #0f172a;
+    --surface-color: #1e293b;
+    --text-primary: #f1f5f9;
+    --text-secondary: #cbd5e1;
+    --border-color: #334155;
+    --input-bg: #1e293b;
+    --input-border: #334155;
+    --input-text: #f1f5f9;
+    --input-placeholder: #64748b;
+    --input-focus-border: #818cf8;
+    --hover-bg-color: #334155;
+    --focus-color: #818cf8;
+    --primary-bg-color: #1e293b;
+  }
+}

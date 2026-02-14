@@ -795,3 +795,272 @@
     width: 100%;
   }
 }
+/* ===========================
+   DARK MODE OVERRIDES
+   =========================== */
+
+/* Access Card - Dark Mode Base */
+[data-theme="dark"] .ehr-access-card,
+.dark-mode .ehr-access-card {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border-color: rgba(51, 65, 85, 0.5);
+  color: var(--text-primary);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="dark"] .ehr-access-card h3,
+.dark-mode .ehr-access-card h3 {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .ehr-access-card p,
+.dark-mode .ehr-access-card p {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .ehr-access-card:hover,
+.dark-mode .ehr-access-card:hover {
+  box-shadow: 0 20px 25px -5px rgba(129, 140, 248, 0.15), 0 10px 10px -5px rgba(129, 140, 248, 0.08);
+}
+
+/* Green Card - Dark Mode */
+[data-theme="dark"] .ehr-access-card.green,
+.dark-mode .ehr-access-card.green {
+  background: linear-gradient(135deg, #064e3b 0%, #0f172a 100%);
+  border-color: rgba(52, 211, 153, 0.3);
+}
+
+[data-theme="dark"] .ehr-access-card.green:hover,
+.dark-mode .ehr-access-card.green:hover {
+  background: linear-gradient(135deg, #065f46 0%, #064e3b 100%);
+  border-color: rgba(52, 211, 153, 0.6);
+  box-shadow: 0 20px 25px -5px rgba(52, 211, 153, 0.15), 0 10px 10px -5px rgba(52, 211, 153, 0.08);
+}
+
+[data-theme="dark"] .ehr-access-card.green::before,
+.dark-mode .ehr-access-card.green::before {
+  color: #6ee7b7;
+}
+
+/* Blue Card - Dark Mode */
+[data-theme="dark"] .ehr-access-card.blue,
+.dark-mode .ehr-access-card.blue {
+  background: linear-gradient(135deg, #1e1b4b 0%, #0f172a 100%);
+  border-color: rgba(129, 140, 248, 0.3);
+}
+
+[data-theme="dark"] .ehr-access-card.blue:hover,
+.dark-mode .ehr-access-card.blue:hover {
+  background: linear-gradient(135deg, #312e81 0%, #1e1b4b 100%);
+  border-color: rgba(129, 140, 248, 0.6);
+  box-shadow: 0 20px 25px -5px rgba(129, 140, 248, 0.15), 0 10px 10px -5px rgba(129, 140, 248, 0.08);
+}
+
+[data-theme="dark"] .ehr-access-card.blue::before,
+.dark-mode .ehr-access-card.blue::before {
+  color: #a5b4fc;
+}
+
+/* Red Card - Dark Mode */
+[data-theme="dark"] .ehr-access-card.red,
+.dark-mode .ehr-access-card.red {
+  background: linear-gradient(135deg, #7f1d1d 0%, #0f172a 100%);
+  border-color: rgba(248, 113, 113, 0.3);
+}
+
+[data-theme="dark"] .ehr-access-card.red:hover,
+.dark-mode .ehr-access-card.red:hover {
+  background: linear-gradient(135deg, #991b1b 0%, #7f1d1d 100%);
+  border-color: rgba(248, 113, 113, 0.6);
+  box-shadow: 0 20px 25px -5px rgba(248, 113, 113, 0.15), 0 10px 10px -5px rgba(248, 113, 113, 0.08);
+}
+
+[data-theme="dark"] .ehr-access-card.red::before,
+.dark-mode .ehr-access-card.red::before {
+  color: #fca5a5;
+}
+
+/* Card Icon - Dark Mode */
+[data-theme="dark"] .card-icon,
+.dark-mode .card-icon {
+  background: rgba(51, 65, 85, 0.3);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="dark"] .ehr-access-card:hover .card-icon,
+.dark-mode .ehr-access-card:hover .card-icon {
+  background: rgba(51, 65, 85, 0.6);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+}
+
+/* Disabled Card - Dark Mode */
+[data-theme="dark"] .disabled-card,
+.dark-mode .disabled-card {
+  opacity: 0.5;
+  filter: grayscale(0.8);
+}
+
+/* ===========================
+   PATIENT RECORDS MANAGEMENT - DARK MODE
+   =========================== */
+
+/* Toolbar Section - Dark Mode */
+[data-theme="dark"] .toolbar-section,
+.dark-mode .toolbar-section {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
+  border-color: rgba(51, 65, 85, 0.5) !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2) !important;
+}
+
+[data-theme="dark"] .toolbar-section:hover,
+.dark-mode .toolbar-section:hover {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3) !important;
+}
+
+[data-theme="dark"] .toolbar-header-row,
+.dark-mode .toolbar-header-row {
+  border-bottom-color: var(--border-color);
+}
+
+[data-theme="dark"] .toolbar-title,
+.dark-mode .toolbar-title {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .toolbar-title svg,
+.dark-mode .toolbar-title svg {
+  color: #a5b4fc;
+  filter: drop-shadow(0 2px 4px rgba(129, 140, 248, 0.3));
+}
+
+/* Search Field - Dark Mode */
+[data-theme="dark"] .search-field-wrapper,
+.dark-mode .search-field-wrapper {
+  background: #1e293b;
+  border-color: rgba(51, 65, 85, 0.5);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="dark"] .search-field-wrapper:focus-within,
+.dark-mode .search-field-wrapper:focus-within {
+  border-color: #818cf8;
+  box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.15), 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .field-icon,
+.dark-mode .field-icon {
+  color: rgba(100, 116, 139, 0.6);
+}
+
+[data-theme="dark"] .search-field-wrapper:focus-within .field-icon,
+.dark-mode .search-field-wrapper:focus-within .field-icon {
+  color: #818cf8;
+}
+
+[data-theme="dark"] .patient-input-pro,
+.dark-mode .patient-input-pro {
+  color: var(--text-primary);
+  background: transparent;
+}
+
+[data-theme="dark"] .patient-input-pro::placeholder,
+.dark-mode .patient-input-pro::placeholder {
+  color: rgba(100, 116, 139, 0.6);
+}
+
+/* Clear Search Button - Dark Mode */
+[data-theme="dark"] .clear-search-btn,
+.dark-mode .clear-search-btn {
+  background: rgba(51, 65, 85, 0.3);
+  color: rgba(100, 116, 139, 0.6);
+}
+
+[data-theme="dark"] .clear-search-btn:hover,
+.dark-mode .clear-search-btn:hover {
+  color: #fca5a5;
+  background: rgba(248, 113, 113, 0.15);
+}
+
+/* Search Results Dropdown - Dark Mode */
+[data-theme="dark"] .search-results-dropdown,
+.dark-mode .search-results-dropdown {
+  background: #1e293b;
+  border-color: rgba(51, 65, 85, 0.5);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="dark"] .result-item,
+.dark-mode .result-item {
+  border-bottom-color: rgba(51, 65, 85, 0.3);
+  transition: background-color 0.2s;
+}
+
+[data-theme="dark"] .result-item:hover,
+.dark-mode .result-item:hover {
+  background-color: rgba(51, 65, 85, 0.3);
+}
+
+[data-theme="dark"] .result-item.active,
+.dark-mode .result-item.active {
+  background-color: rgba(129, 140, 248, 0.15);
+  border-left-color: #818cf8;
+}
+
+[data-theme="dark"] .result-avatar,
+.dark-mode .result-avatar {
+  background: rgba(129, 140, 248, 0.2);
+  color: #a5b4fc;
+  border-color: rgba(129, 140, 248, 0.3);
+}
+
+[data-theme="dark"] .result-name,
+.dark-mode .result-name {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .result-email,
+.dark-mode .result-email {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .no-results,
+.dark-mode .no-results {
+  color: var(--text-secondary);
+}
+
+/* Action Buttons - Dark Mode */
+[data-theme="dark"] .btn-pro,
+.dark-mode .btn-pro {
+  background: transparent;
+  border: 1px solid rgba(51, 65, 85, 0.5);
+  color: var(--text-primary);
+  transition: all 0.2s;
+}
+
+[data-theme="dark"] .btn-pro:hover,
+.dark-mode .btn-pro:hover {
+  background: rgba(51, 65, 85, 0.3);
+  border-color: rgba(129, 140, 248, 0.5);
+}
+
+[data-theme="dark"] .btn-pro-green,
+.dark-mode .btn-pro-green {
+  border-color: rgba(52, 211, 153, 0.3);
+}
+
+[data-theme="dark"] .btn-pro-green:hover,
+.dark-mode .btn-pro-green:hover {
+  background: rgba(52, 211, 153, 0.15);
+  border-color: rgba(52, 211, 153, 0.6);
+}
+
+[data-theme="dark"] .btn-pro-indigo,
+.dark-mode .btn-pro-indigo {
+  border-color: rgba(129, 140, 248, 0.3);
+}
+
+[data-theme="dark"] .btn-pro-indigo:hover,
+.dark-mode .btn-pro-indigo:hover {
+  background: rgba(129, 140, 248, 0.15);
+  border-color: rgba(129, 140, 248, 0.6);
+}

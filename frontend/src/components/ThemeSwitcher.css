@@ -1,0 +1,144 @@
+/* Theme Switcher Button Styles */
+.theme-switcher {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 8px;
+  background-color: var(--primary-bg-color, #f5f5f5);
+  color: var(--text-primary, #333);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 20px;
+  padding: 0;
+  box-shadow: none;
+
+  /* Hover effects */
+}
+
+.theme-switcher:hover {
+  background-color: var(--hover-bg-color);
+  transform: scale(1.05);
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.1));
+}
+
+/* Active/Pressed state */
+.theme-switcher:active {
+  transform: scale(0.95);
+}
+
+/* Focus state for accessibility */
+.theme-switcher:focus {
+  outline: 2px solid var(--focus-color, #0066cc);
+  outline-offset: 2px;
+}
+
+.theme-icon {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ===========================
+   CONTEXT-SPECIFIC STYLING
+   =========================== */
+
+/* Patient Dashboard Header - White text on blue */
+.header-actions .theme-switcher {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(4px);
+}
+
+.header-actions .theme-switcher:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.header-actions .theme-switcher:focus {
+  outline-color: rgba(255, 255, 255, 0.8);
+}
+
+/* Doctor / Nurse / Admin Header */
+.ehr-header .theme-switcher {
+  background-color: var(--primary-bg-color, #f5f5f5);
+  color: var(--text-primary, #333);
+}
+
+.ehr-header .theme-switcher:hover {
+  background-color: var(--hover-bg-color);
+}
+
+/* Dark mode adjustments */
+[data-theme="dark"] .theme-switcher {
+  background-color: var(--primary-bg-color);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .theme-switcher:hover {
+  background-color: var(--hover-bg-color);
+}
+
+/* Light mode adjustments */
+[data-theme="light"] .theme-switcher {
+  background-color: var(--primary-bg-color);
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .theme-switcher:hover {
+  background-color: var(--hover-bg-color);
+}
+
+/* ===========================
+   RESPONSIVE DESIGN
+   =========================== */
+
+@media (max-width: 768px) {
+  .theme-switcher {
+    width: 40px;
+    height: 40px;
+  }
+
+  .theme-icon {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+@media (max-width: 480px) {
+  .theme-switcher {
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+  }
+
+  .theme-icon {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+/* ===========================
+   REDUCED MOTION SUPPORT
+   =========================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-switcher,
+  .theme-icon {
+    transition: none;
+  }
+
+  .theme-switcher:hover {
+    transform: none;
+  }
+
+  .theme-switcher:active {
+    transform: none;
+  }
+}

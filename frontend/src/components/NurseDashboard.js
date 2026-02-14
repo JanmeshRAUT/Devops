@@ -6,6 +6,7 @@ import { getAuth } from "firebase/auth";
 import NurseHomeTab from "./nurse_tabs/NurseHomeTab";
 import NursePatientsTab from "./nurse_tabs/NursePatientsTab";
 import NurseAccessLogsTab from "./nurse_tabs/NurseAccessLogsTab";
+import ThemeSwitcher from "./ThemeSwitcher";
 import {
   FaUserNurse,
   FaHospitalUser,
@@ -317,6 +318,7 @@ const NurseDashboard = ({ user, onLogout }) => {
           </div>
 
           <div className="header-right">
+            <ThemeSwitcher />
             <div className={`status-badge ${isInsideNetwork ? "network" : "error"}`}>
               <FaCheckCircle /> {isInsideNetwork ? "In Network" : "Outside Network"}
             </div>
