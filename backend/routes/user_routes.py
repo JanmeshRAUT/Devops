@@ -4,32 +4,36 @@ from datetime import datetime
 import traceback
 import sys
 import os
+import json
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from firebase_init import db, firebase_admin_initialized
 from limiter import limiter
 from middleware import verify_admin_token
 from helpers import patient_doc_id
 
 user_bp = Blueprint('user_routes', __name__)
 
+# ---------- Load static users database ----------
+STATIC_USERS_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "static_users.json")
+
+def load_static_users():
+    try:
+        with open(STATIC_USERS_FILE, 'r') as f:
+            data = json.load(f)
+            return data.get("users", [])
+    except Exception as e:
+        print(f"❌ Error loading static users: {e}")
+        return []
+
 @user_bp.route("/get_all_users", methods=["GET"])
 @verify_admin_token
 def get_all_users():
     try:
-        print("📤 GET /get_all_users - fetching...")
-        users = []
-        if firebase_admin_initialized:
-            users_ref = db.collection("users").stream()
-            for doc in users_ref:
-                u = doc.to_dict()
-                u["id"] = doc.id
-                users.append(u)
-        else:
-            print("⚠️ Firebase not initialized - returning empty users list.")
-        users.sort(key=lambda x: x.get("name", "").lower())
-        return jsonify({"success": True, "users": users, "count": len(users)}), 200
+        print("📤 GET /get_all_users - fetching from static database...")
+        users = load_static_users()
+        users_sorted = sorted(users, key=lambda x: x.get("name", "").lower())
+        return jsonify({"success": True, "users": users_sorted, "count": len(users_sorted)}), 200
     except Exception as e:
         print("❌ Error fetching users:", e)
         traceback.print_exc()
@@ -39,16 +43,14 @@ def get_all_users():
 @limiter.limit("10 per hour")  # ✅ Prevent spam registration
 def register_user():
     """
-    Admin adds new users (Doctor, Nurse, Patient, etc.)
-    Ensures patient is created in BOTH:
-      - users collection (with age/gender)
-      - patients collection (for dashboard visibility)
+    Admin adds new users (Doctor, Nurse, Patient, etc.) to static database
     """
     try:
         data = request.get_json()
         name = data.get("name")
         email = data.get("email")
         role = data.get("role")
+        password = data.get("password", "DefaultPass@123")
         age = data.get("age", 0)
         gender = data.get("gender", "")
 
@@ -57,70 +59,41 @@ def register_user():
 
         name_clean = name.strip()
         role_clean = role.strip().lower()
-        user_doc_id = email  # using email as users doc id
+        email_clean = email.strip().lower()
         
-        # ✅ Generate Unique User ID
-        import uuid
-        prefix = "USR"
-        if role_clean == "doctor": prefix = "DOC"
-        elif role_clean == "nurse": prefix = "NUR"
-        elif role_clean == "admin": prefix = "ADM"
-        elif role_clean == "patient": prefix = "PT"
+        # Load existing users
+        users = load_static_users()
         
-        unique_id = f"{prefix}-{str(uuid.uuid4())[:8].upper()}"
-
-        # if firebase not initialized, throw friendly error
-        if not firebase_admin_initialized:
-            return jsonify({"success": False, "message": "❌ Firebase not configured on server."}), 500
-
-        user_ref = db.collection("users").document(user_doc_id)
-        if user_ref.get().exists:
+        # Check if user already exists
+        if any(u.get("email") == email_clean for u in users):
             return jsonify({"success": False, "message": "⚠️ User already registered."}), 409
 
-        # ✅ UPDATED: Include unique_id, age and gender in users collection
-        user_ref.set({
+        # Generate new user ID
+        new_id = max([u.get("id", 0) for u in users], default=0) + 1
+        
+        new_user = {
+            "id": new_id,
             "name": name_clean,
-            "email": email,
+            "email": email_clean,
+            "password": password,
             "role": role_clean,
-            "user_id": unique_id,           # ✅ ADDED Unique ID
             "age": int(age) if age else 0,
             "gender": gender if gender else "",
             "trust_score": 80,
             "created_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-        })
-
-        print(f"👤 User registered: {name_clean} ({role_clean}) - ID: {unique_id}")
-
-        # ✅ UPDATED: Create patient with consistent ID
-        if role_clean == "patient":
-            patient_doc_slug = patient_doc_id(name_clean) # Doc ID is slug
-            patient_ref = db.collection("patients").document(patient_doc_slug)
-            
-            if not patient_ref.get().exists:
-                patient_ref.set({
-                    "name": name_clean,
-                    "patient_id": unique_id, # ✅ Use same ID as user
-                    "email": email,
-                    "age": int(age) if age else 0,
-                    "gender": gender if gender else "",
-                    "diagnosis": "—",
-                    "treatment": "—",
-                    "notes": "",
-                    "doctor_assigned": "—",
-                    "trust_score": 80,
-                    "created_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-                })
-                print(f"🩺 Patient created in 'patients' collection: {name_clean} (ID: {unique_id})")
-            else:
-                # ✅ UPDATE: If patient exists, update metadata
-                patient_ref.update({
-                    "age": int(age) if age else 0,
-                    "gender": gender if gender else "",
-                    "patient_id": unique_id # Ensure ID is synced if missing
-                })
-                print(f"ℹ️ Patient {name_clean} updated with new metadata")
-
-        return jsonify({"success": True, "message": f"Registered {name_clean} ({role_clean}) successfully."}), 200
+        }
+        
+        users.append(new_user)
+        
+        # Save updated users to static file
+        try:
+            with open(STATIC_USERS_FILE, 'w') as f:
+                json.dump({"users": users}, f, indent=2)
+            print(f"👤 User registered: {name_clean} ({role_clean}) - ID: {new_id}")
+            return jsonify({"success": True, "message": f"Registered {name_clean} ({role_clean}) successfully."}), 200
+        except Exception as e:
+            print(f"❌ Error saving user to file: {e}")
+            return jsonify({"success": False, "message": "Error saving user"}), 500
 
     except Exception as e:
         print("❌ Error registering user:", e)
@@ -131,33 +104,38 @@ def register_user():
 @verify_admin_token
 @limiter.limit("10 per hour")  # ✅ Prevent accidental bulk user deletions
 def delete_user(user_email):
-    """Delete a user from the system"""
+    """Delete a user from the static database"""
     try:
-        if not firebase_admin_initialized:
-            return jsonify({"success": False, "error": "❌ Firebase not configured"}), 500
+        users = load_static_users()
+        user_email_clean = user_email.strip().lower()
         
-        # Delete from users collection
-        user_ref = db.collection("users").document(user_email)
-        user_doc = user_ref.get()
+        # Find and remove user
+        user_found = None
+        users_filtered = []
+        for u in users:
+            if u.get("email") == user_email_clean:
+                user_found = u
+            else:
+                users_filtered.append(u)
         
-        if not user_doc.exists:
-            return jsonify({"success": False, "error": F"❌ User not found"}), 404
+        if not user_found:
+            return jsonify({"success": False, "error": "❌ User not found"}), 404
         
-        user_data = user_doc.to_dict()
-        user_name = user_data.get("name", "Unknown")
-        
-        # Delete the user document
-        user_ref.delete()
-        
-        # If user is a patient, also delete from patients collection
-        if user_data.get("role") == "patient":
-            patient_id = patient_doc_id(user_name)
-            db.collection("patients").document(patient_id).delete()
-        
-        print(f"User {user_name} ({user_email}) deleted successfully")
-        return jsonify({"success": True, "message": f"User {user_name} deleted successfully"}), 200
+        # Save updated users list
+        try:
+            with open(STATIC_USERS_FILE, 'w') as f:
+                json.dump({"users": users_filtered}, f, indent=2)
+            print(f"User {user_found.get('name')} ({user_email_clean}) deleted successfully")
+            return jsonify({"success": True, "message": f"User {user_found.get('name')} deleted successfully"}), 200
+        except Exception as e:
+            print(f"❌ Error saving user list: {e}")
+            return jsonify({"success": False, "error": "Error deleting user"}), 500
     
     except Exception as e:
+        print(f"❌ Error deleting user: {e}")
+        traceback.print_exc()
+        return jsonify({"success": False, "error": str(e)}), 500
+
         print(f"❌ delete_user error: {e}")
         traceback.print_exc()
         return jsonify({"success": False, "error": str(e)}), 500

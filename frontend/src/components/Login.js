@@ -4,8 +4,6 @@ import { API_URL } from "../api";
 import "../css/Login.css";
 import "../css/Notifications.css"; // <-- Add this if not present
 import { FaTimes } from "react-icons/fa";
-import { auth } from "./firebaseConfig";
-import { signInWithEmailAndPassword } from "firebase/auth";
 
 const Login = ({ onLogin }) => {
 	const [step, setStep] = useState(1);
@@ -52,16 +50,12 @@ const Login = ({ onLogin }) => {
 				setLoading(true);
 				setMessage("Verifying admin credentials...");
 
-				// ✅ Authenticate with Firebase using email & password
-				const userCredential = await signInWithEmailAndPassword(auth, email, password);
-				const idToken = await userCredential.user.getIdToken();
-
-				// ✅ Verify with backend
+				// ✅ Authenticate admin with static database
 				const res = await axios.post(
 					`${API_URL}/admin/login`,
-					{},
 					{
-						headers: { Authorization: `Bearer ${idToken}` },
+						email: email,
+						password: password
 					}
 				);
 
@@ -73,11 +67,7 @@ const Login = ({ onLogin }) => {
 				}
 			} catch (error) {
 				console.error("Admin auth error:", error);
-				if (error.code === "auth/user-not-found") {
-					setMessage("❌ Admin email not found in Firebase");
-				} else if (error.code === "auth/wrong-password") {
-					setMessage("❌ Incorrect password");
-				} else if (error.response?.data?.error) {
+				if (error.response?.data?.error) {
 					setMessage("❌ " + error.response.data.error);
 				} else {
 					setMessage("❌ Admin authentication failed");
@@ -98,18 +88,22 @@ const Login = ({ onLogin }) => {
 		if (!email.includes("@")) {
 			return setMessage("❌ Enter a valid email address!");
 		}
+		if (!password.trim()) {
+			return setMessage("❌ Enter password!");
+		}
 
 		try {
 			setLoading(true);
 			setMessage("");
 			
-			// ✅ NEW: Show loading message for verification
+			// ✅ Show loading message for verification
 			setMessage("🔍 Verifying credentials with database...");
 			
 			const res = await axios.post(`${API_URL}/user_login`, {
 				name,
 				role,
 				email,
+				password
 			});
 
 			if (res.data.success) {
@@ -119,7 +113,7 @@ const Login = ({ onLogin }) => {
 				setOtp("");
 				setMessage((res.data.message || "✅ OTP sent to your email"));
 			} else {
-				// ✅ NEW: Enhanced error messages from backend
+				// ✅ Enhanced error messages from backend
 				const errorMsg = res.data.error || "Login failed";
 				if (errorMsg.includes("mismatch")) {
 					setMessage("❌ Name or role does not match our records. Please verify and try again.");
@@ -133,7 +127,7 @@ const Login = ({ onLogin }) => {
 			console.error("Login error:", error);
 			if (error.response?.data?.error) {
 				const errorMsg = error.response.data.error;
-				// ✅ NEW: Parse error message intelligently
+				// ✅ Parse error message intelligently
 				if (errorMsg.includes("mismatch") || errorMsg.includes("Expected:")) {
 					setMessage("❌ " + errorMsg);
 				} else if (errorMsg.includes("not found")) {
@@ -315,6 +309,16 @@ const Login = ({ onLogin }) => {
 										<option value="nurse">Nurse</option>
 										<option value="patient">Patient</option>
 									</select>
+
+									<label className="label">Password</label>
+									<input
+										className="input"
+										type="password"
+										placeholder="Enter your password"
+										value={password}
+										onChange={(e) => setPassword(e.target.value)}
+										aria-label="Password"
+									/>
 								</>
 							)}
 
@@ -330,7 +334,7 @@ const Login = ({ onLogin }) => {
 									fontSize: "0.875rem",
 									fontWeight: "500"
 								}}>
-									🔐 Admin Account Detected - Firebase Authentication Required
+									🔐 Admin Account Detected - Verify with your password
 								</div>
 							)}
 

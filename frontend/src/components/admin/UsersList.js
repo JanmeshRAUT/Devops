@@ -93,7 +93,7 @@ const UsersList = ({ users, fetchUsers, loading }) => {
               <tr>
                 <td colSpan="5">
                   <div className="empty-state">
-                    <span className="empty-state-icon">👥</span>
+                    <span className="empty-state-icon">�</span>
                     <span>No users found</span>
                   </div>
                 </td>

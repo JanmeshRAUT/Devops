@@ -1,8 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "./firebaseConfig";
+import { API_URL } from "../api";
 import "../css/Login.css";
 
 const AdminLogin = ({ onLogin }) => {
@@ -17,45 +16,44 @@ const AdminLogin = ({ onLogin }) => {
     setLoading(true);
     setMessage("");
 
-    try {
-      // ✅ Firebase Authentication
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-      const token = await userCredential.user.getIdToken();
+    if (!email || !password) {
+      setMessage("❌ Email and password are required");
+      setLoading(false);
+      return;
+    }
 
-      // ✅ Verify with Backend
+    try {
+      // ✅ Authenticate with Static Database
       const response = await axios.post(
-        "http://localhost:5000/admin/login",
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
+        `${API_URL}/admin/login`,
+        {
+          email: email.trim(),
+          password: password.trim()
+        }
       );
 
       if (response.data.success) {
-        // ✅ Store token in localStorage first (before state update)
-        localStorage.setItem("adminToken", token);
-        onLogin(token);
+        // ✅ Store admin token in localStorage
+        localStorage.setItem("adminToken", response.data.user_id);
+        localStorage.setItem("adminEmail", email);
+        onLogin(response.data.user_id);
         setMessage("✅ Admin login successful!");
         // Give localStorage time to persist before navigation
         setTimeout(() => {
           navigate("/admin/dashboard");
         }, 500);
       } else {
-        setMessage("❌ Unauthorized: Not an admin user");
+        setMessage("❌ " + (response.data.error || "Login failed"));
       }
     } catch (error) {
       console.error("Admin login error:", error);
 
-      if (error.code === "auth/user-not-found") {
-        setMessage("❌ User not found");
-      } else if (error.code === "auth/wrong-password") {
-        setMessage("❌ Invalid password");
-      } else if (error.response?.data?.error) {
+      if (error.response?.data?.error) {
         setMessage("❌ " + error.response.data.error);
+      } else if (error.response?.status === 403) {
+        setMessage("❌ Invalid admin credentials");
       } else {
-        setMessage("❌ Login failed. Check your credentials.");
+        setMessage("❌ Login failed. Please check your credentials.");
       }
     } finally {
       setLoading(false);
@@ -154,12 +152,12 @@ const AdminLogin = ({ onLogin }) => {
             }}
           >
             <p style={{ margin: 0, marginBottom: "0.5rem" }}>
-              <strong>Demo Credentials:</strong>
+              <strong>Demo Admin Credentials:</strong>
             </p>
             <p style={{ margin: 0 }}>
               Email: admin@ehr.com
               <br />
-              Password: (Set up in Firebase)
+              Password: Admin@123
             </p>
           </div>
 

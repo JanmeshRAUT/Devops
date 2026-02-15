@@ -1,0 +1,39 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "name": "admin@ehr.com",
+      "email": "admin@ehr.com",
+      "password": "Admin@123",
+      "role": "admin"
+    },
+    {
+      "id": 2,
+      "name": "Dr. John Smith",
+      "email": "john.smith@hospital.com",
+      "password": "Doctor@123",
+      "role": "doctor"
+    },
+    {
+      "id": 3,
+      "name": "Jane Nurse",
+      "email": "jane.nurse@hospital.com",
+      "password": "Nurse@123",
+      "role": "nurse"
+    },
+    {
+      "id": 4,
+      "name": "Patient One",
+      "email": "patient1@example.com",
+      "password": "Patient@123",
+      "role": "patient"
+    },
+    {
+      "id": 5,
+      "name": "Emergency Staff",
+      "email": "emergency@hospital.com",
+      "password": "Emergency@123",
+      "role": "emergency"
+    }
+  ]
+}

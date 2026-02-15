@@ -1,80 +1,95 @@
 
 from flask import Blueprint, request, jsonify
-from firebase_admin import auth
-from google.cloud.firestore import FieldFilter
 import random
 import string
 import time
 import traceback
 import sys
 import os
+import json
 
 # Adjust path to import from parent directory if needed
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from limiter import limiter
-from firebase_init import db, firebase_admin_initialized
 from utils import send_otp_email, ADMIN_EMAIL
 
 auth_bp = Blueprint('auth_routes', __name__)
 
+# ---------- Load static users database ----------
+STATIC_USERS_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "static_users.json")
+
+def load_static_users():
+    try:
+        with open(STATIC_USERS_FILE, 'r') as f:
+            data = json.load(f)
+            return data.get("users", [])
+    except Exception as e:
+        print(f"❌ Error loading static users: {e}")
+        return []
+
 # ---------- In-memory OTP sessions ----------
 otp_sessions = {}
 
+
 @auth_bp.route("/admin/login", methods=["POST"])
 def admin_login():
-    token = request.headers.get("Authorization")
-    if not token:
-        return jsonify({"error": "Missing token"}), 401
+    """Admin login with static database"""
+    data = request.get_json()
+    email = data.get("email", "").strip()
+    password = data.get("password", "").strip()
+    
+    if not email or not password:
+        return jsonify({"error": "Email and password required"}), 400
+    
     try:
-        token = token.replace("Bearer ", "")
-        decoded = auth.verify_id_token(token)
-        email = decoded.get("email")
-        if email == ADMIN_EMAIL:
-            print(f"✅ Admin verified: {email}")
-            return jsonify({"success": True, "message": "Admin verified ✅"})
+        users = load_static_users()
+        
+        # Find user with matching email and password and admin role
+        for user in users:
+            if user.get("email") == email and user.get("password") == password and user.get("role") == "admin":
+                print(f"✅ Admin verified: {email}")
+                return jsonify({"success": True, "message": "Admin verified ✅", "user_id": user.get("id")})
+        
         print(f"🚫 Unauthorized admin attempt: {email}")
-        return jsonify({"success": False, "error": "Not an admin"}), 403
+        return jsonify({"success": False, "error": "Invalid admin credentials"}), 403
+        
     except Exception as e:
-        print("❌ Token error:", e)
-        return jsonify({"error": "Invalid or expired token"}), 401
+        print("❌ Admin login error:", e)
+        return jsonify({"error": "Server error"}), 500
 
 @auth_bp.route("/user_login", methods=["POST"])
 @limiter.limit("5 per minute")  # ✅ Prevent brute force
 def user_login():
     data = request.get_json()
     name = data.get("name", "").strip()
+    email = data.get("email", "").strip()
+    password = data.get("password", "").strip()
     role = data.get("role", "").strip().lower()
-    email = data.get("email", "").strip()  # ✅ Get email from form
     
     # ✅ Validate required fields
-    if not name or not role or not email:
-        return jsonify(success=False, error="Name, role, and email are required"), 400
+    if not name or not role or not email or not password:
+        return jsonify(success=False, error="Name, email, password, and role are required"), 400
     
     # ✅ Validate email format
     if "@" not in email:
         return jsonify(success=False, error="Invalid email format"), 400
     
-    # Check name and role in database
-    if not firebase_admin_initialized:
-        return jsonify(success=False, error="❌ Firebase not configured on server"), 500
-    
     try:
-        # Query database to find user by name and role
-        users_ref = db.collection("users").where(
-            filter=FieldFilter("name", "==", name)
-        ).limit(1).stream()
+        users = load_static_users()
         
+        # Find user in static database
         user_found = False
-        for user_doc in users_ref:
-            user_data = user_doc.to_dict()
-            # Check if role matches
-            if user_data.get("role", "").lower() == role:
+        for user in users:
+            if (user.get("name") == name and 
+                user.get("email") == email and 
+                user.get("password") == password and
+                user.get("role") == role):
                 user_found = True
                 break
         
         if not user_found:
-            return jsonify(success=False, error=f"No user found with name '{name}' and role '{role}'"), 404
+            return jsonify(success=False, error=f"Invalid credentials for {role}"), 401
         
         # Generate OTP and create session
         otp = "".join(random.choices(string.digits, k=6))
@@ -82,11 +97,13 @@ def user_login():
         otp_sessions[session_id] = {
             "otp": otp,
             "expires": time.time() + 180,
-            "email": email,  # ✅ Use email from form
-            "name": name
+            "email": email,
+            "name": name,
+            "role": role,
+            "user_id": user.get("id")
         }
         
-        # ✅ Send OTP to email provided in form
+        # ✅ Send OTP to email
         if send_otp_email(email, otp, name):
             print(f"✅ OTP sent to {email} for {name} ({role})")
             return jsonify(success=True, session_id=session_id, message="✅ OTP sent to your email"), 200
@@ -97,6 +114,7 @@ def user_login():
         print("❌ Login error:", e)
         traceback.print_exc()
         return jsonify(success=False, error="Server error. Please try again."), 500
+
 
 @auth_bp.route("/verify_otp", methods=["POST"])
 @limiter.limit("10 per minute")  # ✅ Allow multiple OTP attempts
