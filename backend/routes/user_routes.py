@@ -21,7 +21,7 @@ def get_all_users_route():
     db = SessionLocal()
     try:
         print("📤 GET /get_all_users - fetching from PostgreSQL...")
-        # Get all users from PostgreSQL database
+
         users = get_all_users(db)
         users_data = [{
             "id": u.id,
@@ -41,12 +41,8 @@ def get_all_users_route():
         db.close()
 
 @user_bp.route("/register_user", methods=["POST"])
-@limiter.limit("10 per hour")  # ✅ Prevent spam registration
+@limiter.limit("10 per hour")
 def register_user():
-    """
-    Admin adds new users (Doctor, Nurse, Patient, etc.)
-    Using PostgreSQL database
-    """
     db = SessionLocal()
     try:
         data = request.get_json()
@@ -60,33 +56,29 @@ def register_user():
         if not all([name, email, role]):
             return jsonify({"success": False, "message": "❌ Missing required fields (name, email, role)."}), 400
 
-        # ✅ Check if user already exists
         if get_user_by_email(db, email):
             return jsonify({"success": False, "message": "⚠️ User already registered."}), 409
 
-        # ✅ Generate Unique User ID
         prefix = "USR"
         if role == "doctor": prefix = "DOC"
         elif role == "nurse": prefix = "NUR"
         elif role == "admin": prefix = "ADM"
         elif role == "patient": prefix = "PT"
-        
+
         unique_id = f"{prefix}-{str(uuid.uuid4())[:8].upper()}"
 
-        # ✅ Add user to PostgreSQL database
         new_user = {
             "id": unique_id,
             "name": name,
             "email": email,
-            "password": password,  # In production, hash this!
+            "password": password,
             "role": role,
             "age": int(age) if age else None,
             "gender": gender if gender else None,
             "created_at": datetime.utcnow(),
             "status": "active"
         }
-        
-        # Add role-specific fields
+
         if role == "doctor":
             new_user["specialization"] = data.get("specialization", "General Medicine")
             new_user["hospital"] = data.get("hospital", "General Hospital")
@@ -103,7 +95,7 @@ def register_user():
             new_user["phone"] = data.get("phone", "")
             new_user["address"] = data.get("address", "")
             new_user["emergency_contact"] = data.get("emergency_contact", "")
-        
+
         created_user = create_user(db, new_user)
         create_audit_log(db, {
             "user_id": unique_id,
@@ -113,9 +105,9 @@ def register_user():
             "status": "success"
         })
         print(f"👤 User registered: {name} ({role}) - ID: {unique_id}")
-        
+
         return jsonify({
-            "success": True, 
+            "success": True,
             "message": f"Registered {name} ({role}) successfully.",
             "user_id": unique_id
         }), 200
@@ -134,41 +126,5 @@ def register_user():
 
 @user_bp.route("/delete_user/<user_email>", methods=["DELETE"])
 @verify_admin_token
-@limiter.limit("10 per hour")  # ✅ Prevent accidental bulk user deletions
+@limiter.limit("10 per hour")
 def delete_user_route(user_email):
-    """Delete a user from the PostgreSQL database"""
-    db = SessionLocal()
-    try:
-        # Check if user exists
-        user = get_user_by_email(db, user_email.lower())
-        if not user:
-            return jsonify({"success": False, "error": f"❌ User {user_email} not found"}), 404
-        
-        user_name = user.name
-        user_id = user.id
-        
-        # Delete the user
-        delete_user(db, user_id)
-        create_audit_log(db, {
-            "user_id": user_id,
-            "action": "USER_DELETED",
-            "entity_type": "User",
-            "entity_id": user_id,
-            "status": "success"
-        })
-        
-        print(f"👤 User {user_name} ({user_email}) deleted successfully")
-        return jsonify({"success": True, "message": f"User {user_name} deleted successfully"}), 200
-    
-    except Exception as e:
-        print(f"❌ delete_user error: {e}")
-        traceback.print_exc()
-        create_audit_log(db, {
-            "action": "USER_DELETION_FAILED",
-            "entity_type": "User",
-            "status": "error"
-        })
-        return jsonify({"success": False, "error": str(e)}), 500
-    finally:
-        db.close()
-

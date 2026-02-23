@@ -13,7 +13,6 @@ function App() {
   const [adminToken, setAdminToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // ✅ Auto-logout after 5 minutes (300,000 ms) of inactivity
   const handleSessionTimeout = () => {
     if (user || adminToken) {
       alert("⚠️ Session expired due to inactivity. Please login again.");
@@ -24,11 +23,10 @@ function App() {
 
   useIdleTimer(300000, handleSessionTimeout, !!(user || adminToken));
 
-  // ✅ Restore user session on page load
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
     const savedAdminToken = localStorage.getItem("adminToken");
-    const savedAdminUser = localStorage.getItem("adminUser"); // ✅ Restore admin user
+    const savedAdminUser = localStorage.getItem("adminUser"); 
     
     if (savedUser) {
       try {
@@ -43,9 +41,6 @@ function App() {
     if (savedAdminToken) {
       setAdminToken(savedAdminToken);
     }
-    
-    // ✅ Note: savedAdminUser is optional, used for display info
-    // The token is what matters for authentication
 
     setLoading(false);
   }, []);
@@ -86,7 +81,6 @@ function App() {
     );
   }
 
-  // ✅ Protected Route Component for Regular Users
   const ProtectedRoute = ({ children, requiredRole }) => {
     if (!user) {
       return <Navigate to="/" replace />;
@@ -97,7 +91,6 @@ function App() {
     return children;
   };
 
-  // ✅ Protected Route Component for Admin
   const AdminProtectedRoute = ({ children }) => {
     if (!adminToken) {
       return <Navigate to="/admin" replace />;
@@ -108,7 +101,7 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* ✅ HOME PAGE - Login or Redirect to Dashboard */}
+        {}
         <Route 
           path="/" 
           element={
@@ -123,7 +116,7 @@ function App() {
           } 
         />
         
-        {/* ✅ ADMIN LOGIN PAGE */}
+        {}
         <Route 
           path="/admin" 
           element={
@@ -135,7 +128,7 @@ function App() {
           } 
         />
 
-        {/* ✅ ADMIN DASHBOARD - Protected */}
+        {}
         <Route 
           path="/admin/dashboard" 
           element={
@@ -148,7 +141,7 @@ function App() {
           } 
         />
         
-        {/* ✅ DOCTOR DASHBOARD - Protected */}
+        {}
         <Route 
           path="/doctor" 
           element={
@@ -158,7 +151,7 @@ function App() {
           } 
         />
         
-        {/* ✅ NURSE DASHBOARD - Protected */}
+        {}
         <Route 
           path="/nurse" 
           element={
@@ -168,7 +161,7 @@ function App() {
           } 
         />
         
-        {/* ✅ PATIENT DASHBOARD - Protected */}
+        {}
         <Route 
           path="/patient" 
           element={
@@ -178,7 +171,7 @@ function App() {
           } 
         />
 
-        {/* ✅ FALLBACK - Redirect to Home */}
+        {}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>

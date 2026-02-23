@@ -4,8 +4,6 @@ import { API_URL } from "../api";
 import "../css/Login.css";
 import "../css/Notifications.css";
 import { FaTimes } from "react-icons/fa";
-// ✅ Firebase removed from admin login (using Static Database)
-// Admin login now uses: POST /admin/login with email & password
 
 const Login = ({ onLogin }) => {
 	const [step, setStep] = useState(1);
@@ -20,7 +18,6 @@ const Login = ({ onLogin }) => {
 	const [message, setMessage] = useState("");
 	const [toast, setToast] = useState({ show: false, message: "", type: "" });
 
-	// ✅ Check if email is admin
 	const isAdminEmail = (testEmail) => {
 		const adminEmails = ["admin@ehr.com", "admin@medtrust.com"];
 		return adminEmails.includes(testEmail.toLowerCase());
@@ -43,7 +40,6 @@ const Login = ({ onLogin }) => {
 	const handleLogin = async (e) => {
 		e.preventDefault();
 
-		// ✅ Check if admin login
 		if (isAdminEmail(email)) {
 			if (!password) {
 				return setMessage("❌ Enter password!");
@@ -52,7 +48,6 @@ const Login = ({ onLogin }) => {
 				setLoading(true);
 				setMessage("Verifying admin credentials...");
 
-				// ✅ Use Static Database authentication (Firebase disabled)
 				const res = await axios.post(
 					`${API_URL}/admin/login`,
 					{
@@ -86,7 +81,6 @@ const Login = ({ onLogin }) => {
 			return;
 		}
 
-		// ✅ Validation for non-admin users
 		if (!name.trim() || !role) {
 			return setMessage("❌ Enter name & role!");
 		}
@@ -100,8 +94,7 @@ const Login = ({ onLogin }) => {
 		try {
 			setLoading(true);
 			setMessage("");
-			
-			// ✅ NEW: Show loading message for verification
+
 			setMessage("🔍 Verifying credentials with database...");
 			
 			const res = await axios.post(`${API_URL}/user_login`, {
@@ -117,7 +110,7 @@ const Login = ({ onLogin }) => {
 				setOtp("");
 				setMessage((res.data.message || "✅ OTP sent to your email"));
 			} else {
-				// ✅ NEW: Enhanced error messages from backend
+				
 				const errorMsg = res.data.error || "Login failed";
 				if (errorMsg.includes("mismatch")) {
 					setMessage("❌ Name or role does not match our records. Please verify and try again.");
@@ -131,7 +124,7 @@ const Login = ({ onLogin }) => {
 			console.error("Login error:", error);
 			if (error.response?.data?.error) {
 				const errorMsg = error.response.data.error;
-				// ✅ NEW: Parse error message intelligently
+				
 				if (errorMsg.includes("mismatch") || errorMsg.includes("Expected:")) {
 					setMessage("❌ " + errorMsg);
 				} else if (errorMsg.includes("not found")) {
@@ -202,7 +195,6 @@ const Login = ({ onLogin }) => {
 		setMessage("");
 	};
 
-	// Helper to remove leading emoji from backend messages
 	const cleanToastMessage = (msg) => {
 		return (msg || "").replace(
 			/^[\u2705\u274C\u26A0\u2139\u1F691\u1F6A8\u1F198\u1F4E2\u1F4A1\u1F514\u1F6AB\u1F512\u1F4DD\u1F4C8\u1F4C9\u1F4CA\u1F4CB\u1F4CC\u1F4CD\u1F4CE\u1F4CF\u1F4D0\u1F4D1\u1F4D2\u1F4D3\u1F4D4\u1F4D5\u1F4D6\u1F4D7\u1F4D8\u1F4D9\u1F4DA\u1F4DB\u1F4DC\u1F4DD\u1F4DE\u1F4DF\u1F4E0\u1F4E1\u1F4E2\u1F4E3\u1F4E4\u1F4E5\u1F4E6\u1F4E7\u1F4E8\u1F4E9\u1F4EA\u1F4EB\u1F4EC\u1F4ED\u1F4EE\u1F4EF\u1F4F0\u1F4F1\u1F4F2\u1F4F3\u1F4F4\u1F4F5\u1F4F6\u1F4F7\u1F4F8\u1F4F9\u1F4FA\u1F4FB\u1F4FC\u1F4FD\u1F4FE\u1F4FF\u1F500\u1F501\u1F502\u1F503\u1F504\u1F505\u1F506\u1F507\u1F508\u1F509\u1F50A\u1F50B\u1F50C\u1F50D\u1F50E\u1F50F\u1F510\u1F511\u1F512\u1F513\u1F514\u1F515\u1F516\u1F517\u1F518\u1F519\u1F51A\u1F51B\u1F51C\u1F51D\u1F51E\u1F51F\u1F520\u1F521\u1F522\u1F523\u1F524\u1F525\u1F526\u1F527\u1F528\u1F529\u1F52A\u1F52B\u1F52C\u1F52D\u1F52E\u1F52F\u1F530\u1F531\u1F532\u1F533\u1F534\u1F535\u1F536\u1F537\u1F538\u1F539\u1F53A\u1F53B\u1F53C\u1F53D\u1F549\u1F54A\u1F54B\u1F54C\u1F54D\u1F54E\u1F550\u1F551\u1F552\u1F553\u1F554\u1F555\u1F556\u1F557\u1F558\u1F559\u1F55A\u1F55B\u1F55C\u1F55D\u1F55E\u1F55F\u1F560\u1F561\u1F562\u1F563\u1F564\u1F565\u1F566\u1F567\u1F56F\u1F570\u1F573\u1F574\u1F575\u1F576\u1F577\u1F578\u1F579\u1F57A\u1F587\u1F58A\u1F58B\u1F58C\u1F58D\u1F590\u1F595\u1F596\u1F5A4\u1F5A5\u1F5A8\u1F5B1\u1F5B2\u1F5BC\u1F5C2\u1F5C3\u1F5C4\u1F5D1\u1F5D2\u1F5D3\u1F5DC\u1F5DD\u1F5DE\u1F5E1\u1F5E3\u1F5E8\u1F5EF\u1F5F3\u1F5FA\u1F5FB\u1F5FC\u1F5FD\u1F5FE\u1F5FF\u1F600-\u1F64F\u1F680-\u1F6FF\u2600-\u26FF\u2700-\u27BF]\s*/g,
@@ -210,7 +202,6 @@ const Login = ({ onLogin }) => {
 		);
 	};
 
-	// Show toast when message changes
 	useEffect(() => {
 		if (message) {
 			let type = "info";
@@ -226,7 +217,7 @@ const Login = ({ onLogin }) => {
 
 	return (
 		<div className="login-full">
-			{/* Toast Notification */}
+			{}
 			{toast.show && (
 				<div className={`toast-notification toast-${toast.type}`}>
 					<div className="toast-content">
@@ -238,7 +229,7 @@ const Login = ({ onLogin }) => {
 				</div>
 			)}
 
-			{/* Left Side Visual */}
+			{}
 			<div className="left-section">
 				<div className="overlay">
 					<h1 className="brand-title">MedTrust AI</h1>
@@ -248,12 +239,12 @@ const Login = ({ onLogin }) => {
 				</div>
 			</div>
 
-			{/* Right Side Form */}
+			{}
 			<div className="right-section">
 				<div className="form-wrapper">
 					{step === 1 && (
 						<form className="login-form" onSubmit={handleLogin}>
-							{/* small logo + title */}
+							{}
 							<div className="form-head">
 								<div className="logo">MT</div>
 								<div>
@@ -283,7 +274,7 @@ const Login = ({ onLogin }) => {
 								aria-label="Email"
 							/>
 
-							{/* ✅ Show password field for admin */}
+							{}
 							{isAdminEmail(email) && (
 								<>
 									<label className="label">Password</label>
@@ -298,7 +289,7 @@ const Login = ({ onLogin }) => {
 								</>
 							)}
 
-							{/* ✅ Show role dropdown only for non-admin */}
+							{}
 							{!isAdminEmail(email) && (
 								<>
 									<label className="label">Select Role</label>
@@ -316,7 +307,7 @@ const Login = ({ onLogin }) => {
 								</>
 							)}
 
-							{/* ✅ Show admin note if admin email detected */}
+							{}
 							{isAdminEmail(email) && (
 								<div style={{
 									background: "#eff6ff",
@@ -366,7 +357,7 @@ const Login = ({ onLogin }) => {
 								</div>
 							</div>
 
-							{/* progress bar */}
+							{}
 							<div className="progress-wrap" aria-hidden>
 								<div
 									className="progress"

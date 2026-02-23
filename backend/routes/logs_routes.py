@@ -23,16 +23,13 @@ logs_bp = Blueprint('logs_routes', __name__)
 
 @logs_bp.route("/patient_access_history/<patient_name>", methods=["GET"])
 def get_patient_access_history(patient_name):
-    """
-    Fetch access logs specifically for a patient from PostgreSQL.
-    """
     db = SessionLocal()
     try:
         from database import get_patient_by_name
         patient = get_patient_by_name(db, patient_name)
         if not patient:
             return jsonify({"success": False, "message": "Patient not found"}), 404
-        
+
         logs = get_access_logs_by_patient(db, patient.id)
         logs_data = [{
             "id": log.id,
@@ -43,10 +40,10 @@ def get_patient_access_history(patient_name):
             "is_emergency": log.is_emergency,
             "justification": log.justification
         } for log in logs]
-        
+
         return jsonify({
-            "success": True, 
-            "logs": logs_data, 
+            "success": True,
+            "logs": logs_data,
             "count": len(logs_data)
         }), 200
 
@@ -64,10 +61,10 @@ def get_all_doctor_access_logs():
     try:
         start_date = request.args.get("start_date")
         end_date = request.args.get("end_date")
-        
+
         logs_obj = get_access_logs(db)
         logs_data = []
-        
+
         for log in logs_obj:
             log_entry = {
                 "id": log.id,
@@ -77,8 +74,7 @@ def get_all_doctor_access_logs():
                 "status": log.status,
                 "timestamp": log.timestamp.isoformat() if log.timestamp else None
             }
-            
-            # Apply date filters
+
             if log.timestamp:
                 log_date = log.timestamp.date()
                 if start_date:
@@ -95,14 +91,14 @@ def get_all_doctor_access_logs():
                             continue
                     except:
                         pass
-            
+
             logs_data.append(log_entry)
-        
+
         logs_data = logs_data[:500]
-        
+
         return jsonify({
-            "success": True, 
-            "logs": logs_data, 
+            "success": True,
+            "logs": logs_data,
             "total_count": len(logs_data),
             "filters": {"start_date": start_date, "end_date": end_date}
         }), 200
@@ -124,10 +120,10 @@ def get_doctor_access_logs(user_id):
             "status": log.status,
             "timestamp": log.timestamp.isoformat() if log.timestamp else None
         } for log in logs]
-        
+
         return jsonify({
-            "success": True, 
-            "logs": logs_data, 
+            "success": True,
+            "logs": logs_data,
             "count": len(logs_data)
         }), 200
     except Exception as e:
@@ -144,7 +140,7 @@ def patient_access_logs(patient_name):
         patient = get_patient_by_name(db, patient_name)
         if not patient:
             return jsonify({"success": False, "message": "Patient not found"}), 404
-        
+
         logs = get_access_logs_by_patient(db, patient.id)
         logs_data = [{
             "id": log.id,
@@ -153,7 +149,7 @@ def patient_access_logs(patient_name):
             "status": log.status,
             "timestamp": log.timestamp.isoformat() if log.timestamp else None
         } for log in logs]
-        
+
         return jsonify({"success": True, "logs": logs_data, "count": len(logs_data)}), 200
     except Exception as e:
         print(f"❌ patient_access_logs error: {e}")
@@ -176,8 +172,7 @@ def access_logs_admin():
             "timestamp": log.timestamp.isoformat() if log.timestamp else None,
             "is_emergency": log.is_emergency
         } for log in logs]
-        
-        # Get audit logs as well
+
         audit_logs = get_audit_logs(db)
         audit_data = [{
             "id": log.id,
@@ -187,7 +182,7 @@ def access_logs_admin():
             "status": log.status,
             "timestamp": log.timestamp.isoformat() if log.timestamp else None
         } for log in audit_logs]
-        
+
         return jsonify({
             "success": True,
             "access_logs": logs_data,
@@ -230,7 +225,7 @@ def get_doctor_patient_interactions(doctor_name):
         for log in get_doctor_logs():
             if log.get("doctor_name") == doctor_name:
                 logs.append(log)
-        
+
         unique_patients = {}
         for log in logs:
             patient = (log.get("patient_name") or "").lower()
@@ -248,28 +243,22 @@ def get_doctor_patient_interactions(doctor_name):
 
 @logs_bp.route("/doctor_patients/<doctor_name>", methods=["GET"])
 def get_doctor_patients(doctor_name):
-    """
-    Fetch all patients whose records were updated by this doctor
-    """
     try:
         patients_list = []
-        
-        # Query patients by last_updated_by field
+
         all_patients = get_all_patients_static()
         for patient in all_patients:
             if patient.get("last_updated_by") == doctor_name:
-                # Decrypt sensitive fields not needed here as we return full patient?
-                # The original code decrypted sensitives.
+
                 p_copy = patient.copy()
-                # Assuming decrypt_sensitive_data is available
-                # p_copy = decrypt_sensitive_data(p_copy, ["diagnosis", "treatment", "notes"])
+
                 patients_list.append(p_copy)
-        
+
         patients_list.sort(key=lambda x: x.get("last_updated_at", ""), reverse=True)
-        
+
         return jsonify({
-            "success": True, 
-            "patients": patients_list, 
+            "success": True,
+            "patients": patients_list,
             "count": len(patients_list)
         }), 200
 
@@ -283,7 +272,7 @@ def get_all_nurse_access_logs():
     try:
         start_date = request.args.get("start_date")
         end_date = request.args.get("end_date")
-        
+
         logs = []
         for log in get_nurse_logs():
             log_entry = log.copy()
@@ -296,13 +285,13 @@ def get_all_nurse_access_logs():
                     if end_date and log_date > end_date:
                         continue
             logs.append(log_entry)
-        
+
         logs.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
         logs = logs[:500]
-        
+
         return jsonify({
-            "success": True, 
-            "logs": logs, 
+            "success": True,
+            "logs": logs,
             "total_count": len(logs),
             "filters": {"start_date": start_date, "end_date": end_date}
         }), 200
@@ -329,7 +318,7 @@ def access_logs_admin():
     try:
         start_date = request.args.get("start_date")
         end_date = request.args.get("end_date")
-        
+
         logs = []
         for log in get_system_logs():
             log_entry = log.copy()
@@ -342,13 +331,13 @@ def access_logs_admin():
                     if end_date and log_date > end_date:
                         continue
             logs.append(log_entry)
-        
+
         logs.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
         logs = logs[:500]
-        
+
         return jsonify({
-            "success": True, 
-            "logs": logs, 
+            "success": True,
+            "logs": logs,
             "count": len(logs),
             "filters": {"start_date": start_date, "end_date": end_date}
         }), 200
@@ -359,9 +348,4 @@ def access_logs_admin():
 @logs_bp.route("/update_log_status", methods=["POST"])
 @verify_admin_token
 def update_log_status():
-    """
-    Update the status of a specific log entry.
-    Note: Static DB logs don't have stable IDs, so this is non-functional in this static version
-    unless we implement ID generation.
-    """
     return jsonify({"success": False, "message": "Log updates not supported in static mode"}), 400

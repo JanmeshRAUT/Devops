@@ -31,7 +31,6 @@ import "../css/MedicalReport.css";
 const DoctorDashboard = ({ user, onLogout }) => {
   const navigate = useNavigate();
 
-  // ✅ Helper: Get Firebase ID token with race-condition fix
   const getFirebaseToken = useCallback(async () => {
     return new Promise((resolve) => {
       const auth = getAuth();
@@ -59,12 +58,11 @@ const DoctorDashboard = ({ user, onLogout }) => {
     });
   }, []);
 
-  // ✅ ALL HOOKS MUST BE AT THE TOP
   const [activeTab, setActiveTab] = useState("dashboard");
   const [trustScore, setTrustScore] = useState(0);
-  const [allPatients, setAllPatients] = useState([]);  // ✅ All patients from admin
+  const [allPatients, setAllPatients] = useState([]);  
   const [selectedPatient, setSelectedPatient] = useState("");
-  const [selectedPatientData, setSelectedPatientData] = useState(null);  // ✅ Patient details
+  const [selectedPatientData, setSelectedPatientData] = useState(null);  
   const [justification, setJustification] = useState("");
   const [ipAddress, setIpAddress] = useState("");
   const [isInsideNetwork, setIsInsideNetwork] = useState(false);
@@ -72,37 +70,33 @@ const DoctorDashboard = ({ user, onLogout }) => {
   const [logs, setLogs] = useState([]);
   const [accessResponse, setAccessResponse] = useState(null);
   const [myPatients, setMyPatients] = useState([]);
-  
-  // ✅ Record editing state
+
   const [recordForm, setRecordForm] = useState({
     diagnosis: "",
     treatment: "",
     notes: "",
   });
 
-  // ✅ New: Enhanced loading and error states
   const [loading, setLoading] = useState({
     trust: false,
     patients: false,
     logs: false,  
     access: false,
     myPatients: false,
-    update: false, // ✅ Added for record updates
+    update: false, 
   });
   const [error, setError] = useState(null);
   const [showPDFModal, setShowPDFModal] = useState(false);
   const [showJustificationModal, setShowJustificationModal] = useState(false);
-  const [showPatientForm, setShowPatientForm] = useState(false);  // ✅ ADD THIS
+  const [showPatientForm, setShowPatientForm] = useState(false);  
   const [currentAccessType, setCurrentAccessType] = useState("");
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
 
-  // ✅ Toast notification helper
   const showToast = (message, type = "info") => {
     setToast({ show: true, message, type });
     setTimeout(() => setToast({ show: false, message: "", type: "" }), 4000);
   };
 
-  // ✅ Fetch IP and Network
   const fetchIPAndNetwork = useCallback(async () => {
     try {
       const res = await axios.get(`${API_URL}/ip_check`);
@@ -115,7 +109,6 @@ const DoctorDashboard = ({ user, onLogout }) => {
     }
   }, []);
 
-  // ✅ Improved Fetch Trust Score - Only updates when value changes
   const fetchTrustScore = useCallback(async () => {
     if (!user?.name) return;
     try {
@@ -124,8 +117,7 @@ const DoctorDashboard = ({ user, onLogout }) => {
         `${API_URL}/trust_score/${user.name}`
       );
       const newScore = res.data.trust_score || 0;
-      
-      // ✅ Only update state if trust score actually changed
+
       setTrustScore((prevScore) => {
         if (prevScore !== newScore) {
           console.log(`🔄 Trust score updated: ${prevScore} → ${newScore}`);
@@ -143,12 +135,10 @@ const DoctorDashboard = ({ user, onLogout }) => {
     }
   }, [user?.name]);
 
-  // ✅ Fetch ALL patients (created by admin)
   const fetchAllPatients = useCallback(async () => {
     try {
       setLoading((prev) => ({ ...prev, patients: true }));
-      
-      // Get Firebase ID token
+
       const token = await getFirebaseToken();
       
       if (!token) {
@@ -174,12 +164,11 @@ const DoctorDashboard = ({ user, onLogout }) => {
     }
   }, [getFirebaseToken]);
 
-  // ✅ Improved Fetch Access Logs - Uses new DoctorAccessLog collection
   const fetchAccessLogs = useCallback(async () => {
     if (!user?.name) return;
     try {
       setLoading((prev) => ({ ...prev, logs: true }));
-      // ✅ NEW: Use dedicated DoctorAccessLog endpoint
+      
       const res = await axios.get(
         `${API_URL}/doctor_access_logs/${user.name}`
       );
@@ -195,7 +184,6 @@ const DoctorDashboard = ({ user, onLogout }) => {
     }
   }, [user?.name]);
 
-  // ✅ Log Login Access
   const logLoginAccess = useCallback(async () => {
     if (!user?.name || !user?.role) return;
     try {
@@ -215,7 +203,6 @@ const DoctorDashboard = ({ user, onLogout }) => {
     }
   }, [user?.name, user?.role]);
 
-  // ✅ NEW: Fetch patients diagnosed by this doctor
   const fetchMyPatients = useCallback(async () => {
     if (!user?.name) return;
     try {
@@ -235,7 +222,6 @@ const DoctorDashboard = ({ user, onLogout }) => {
     }
   }, [user?.name]);
 
-  // ✅ Lifecycle Setup - Removed automatic polling
   useEffect(() => {
     if (!user?.name) return;
 
@@ -246,8 +232,6 @@ const DoctorDashboard = ({ user, onLogout }) => {
     fetchAccessLogs();
     fetchMyPatients();
 
-    // ✅ REMOVED: Automatic polling interval - trust score now updates only on-demand
-    // Trust score will be fetched after actions that affect it (access requests, etc.)
   }, [
     user?.name,
     fetchTrustScore,
@@ -258,7 +242,6 @@ const DoctorDashboard = ({ user, onLogout }) => {
     fetchMyPatients,
   ]);
 
-  // ✅ NOW do the safety check AFTER all hooks
   if (!user || !user.name) {
     return (
       <div className="session-expired-container">
@@ -275,14 +258,12 @@ const DoctorDashboard = ({ user, onLogout }) => {
     );
   }
 
-  // ✅ Enhanced Access Request Handler
   const handleAccessRequest = async (type) => {
     if (!selectedPatient) {
       showToast("⚠️ Please select a patient first!", "warning");
       return;
     }
 
-    // Validate justification for outside network access
     if (!isInsideNetwork && type !== "normal" && !justification.trim()) {
       setCurrentAccessType(type);
       setShowJustificationModal(true);
@@ -292,7 +273,6 @@ const DoctorDashboard = ({ user, onLogout }) => {
     await performAccessRequest(type, justification.trim());
   };
 
-  // ✅ Perform the actual access request
   const performAccessRequest = async (type, reason = "") => {
     try {
       setLoading((prev) => ({ ...prev, access: true }));
@@ -313,16 +293,11 @@ const DoctorDashboard = ({ user, onLogout }) => {
       if (res.data.success) {
         setAccessResponse(res.data);
         showToast(cleanToastMessage(res.data.message), "success");
-        
-        // Auto-show PDF modal DISABLE as per user request
-        // if (res.data.patient_data && Object.keys(res.data.patient_data).length > 0) {
-        //   setTimeout(() => setShowPDFModal(true), 500);
-        // }
+
       } else {
         showToast(cleanToastMessage(res.data.message), "error");
       }
 
-      // Log the access attempt
       await axios.post(`${API_URL}/log_access`, {
         name: user.name,
         doctor_name: user.name,
@@ -348,29 +323,25 @@ const DoctorDashboard = ({ user, onLogout }) => {
     }
   };
 
-  // Helper to remove leading emoji from backend messages
   const cleanToastMessage = (msg) => {
-    // Remove leading emoji and spaces (✅, ❌, ⚠️, ℹ️, 🚑, etc.)
+    
     return (msg || "").replace(/^[\u2705\u274C\u26A0\u2139\u1F691\u1F6A8\u1F198\u1F4E2\u1F4A1\u1F514\u1F6AB\u1F512\u1F4DD\u1F4C8\u1F4C9\u1F4CA\u1F4CB\u1F4CC\u1F4CD\u1F4CE\u1F4CF\u1F4D0\u1F4D1\u1F4D2\u1F4D3\u1F4D4\u1F4D5\u1F4D6\u1F4D7\u1F4D8\u1F4D9\u1F4DA\u1F4DB\u1F4DC\u1F4DD\u1F4DE\u1F4DF\u1F4E0\u1F4E1\u1F4E2\u1F4E3\u1F4E4\u1F4E5\u1F4E6\u1F4E7\u1F4E8\u1F4E9\u1F4EA\u1F4EB\u1F4EC\u1F4ED\u1F4EE\u1F4EF\u1F4F0\u1F4F1\u1F4F2\u1F4F3\u1F4F4\u1F4F5\u1F4F6\u1F4F7\u1F4F8\u1F4F9\u1F4FA\u1F4FB\u1F4FC\u1F4FD\u1F4FE\u1F4FF\u1F500\u1F501\u1F502\u1F503\u1F504\u1F505\u1F506\u1F507\u1F508\u1F509\u1F50A\u1F50B\u1F50C\u1F50D\u1F50E\u1F50F\u1F510\u1F511\u1F512\u1F513\u1F514\u1F515\u1F516\u1F517\u1F518\u1F519\u1F51A\u1F51B\u1F51C\u1F51D\u1F51E\u1F51F\u1F520\u1F521\u1F522\u1F523\u1F524\u1F525\u1F526\u1F527\u1F528\u1F529\u1F52A\u1F52B\u1F52C\u1F52D\u1F52E\u1F52F\u1F530\u1F531\u1F532\u1F533\u1F534\u1F535\u1F536\u1F537\u1F538\u1F539\u1F53A\u1F53B\u1F53C\u1F53D\u1F549\u1F54A\u1F54B\u1F54C\u1F54D\u1F54E\u1F550\u1F551\u1F552\u1F553\u1F554\u1F555\u1F556\u1F557\u1F558\u1F559\u1F55A\u1F55B\u1F55C\u1F55D\u1F55E\u1F55F\u1F560\u1F561\u1F562\u1F563\u1F564\u1F565\u1F566\u1F567\u1F56F\u1F570\u1F573\u1F574\u1F575\u1F576\u1F577\u1F578\u1F579\u1F57A\u1F587\u1F58A\u1F58B\u1F58C\u1F58D\u1F590\u1F595\u1F596\u1F5A4\u1F5A5\u1F5A8\u1F5B1\u1F5B2\u1F5BC\u1F5C2\u1F5C3\u1F5C4\u1F5D1\u1F5D2\u1F5D3\u1F5DC\u1F5DD\u1F5DE\u1F5E1\u1F5E3\u1F5E8\u1F5EF\u1F5F3\u1F5FA\u1F5FB\u1F5FC\u1F5FD\u1F5FE\u1F5FF\u1F600-\u1F64F\u1F680-\u1F6FF\u2600-\u26FF\u2700-\u27BF]\s*/g, "");
   };
 
-  // ✅ Resolve backend PDF link to absolute URL
   const resolvePdfLink = (link) => {
     if (!link) return "";
     if (link.startsWith("http")) return link;
-    // Remove leading slash to prevent double slash if API_URL ends with one
+    
     const cleanLink = link.startsWith("/") ? link.substring(1) : link;
     return `${API_URL}/${cleanLink}`;
   };
 
-  // ✅ Handle PDF Download (Secure)
   const handleDownloadPDF = async () => {
     if (accessResponse?.pdf_link) {
       try {
         const token = await getFirebaseToken();
         const link = resolvePdfLink(accessResponse.pdf_link);
-        
-        // Append token to URL
+
         const urlObj = new URL(link);
         urlObj.searchParams.append("token", token);
         
@@ -384,14 +355,12 @@ const DoctorDashboard = ({ user, onLogout }) => {
     }
   };
 
-  // ✅ Improved logout
   const handleLogout = () => {
     if (onLogout) onLogout();
     localStorage.clear();
     navigate("/");
   };
 
-  // ✅ Handle patient selection
   const handleSelectPatient = async (patientName) => {
     if (!patientName) {
       setSelectedPatient("");
@@ -405,8 +374,7 @@ const DoctorDashboard = ({ user, onLogout }) => {
     }
 
     setSelectedPatient(patientName);
-    
-    // Fetch patient details
+
     try {
       const token = await getFirebaseToken();
       const res = await axios.get(
@@ -425,10 +393,9 @@ const DoctorDashboard = ({ user, onLogout }) => {
           notes: res.data.patient.notes || "",
         });
       } else {
-        // ✅ Patient exists but no detailed data yet - create minimal structure
-        console.log(`⚠️ Patient ${patientName} found in list but no detailed data. Creating minimal structure.`);
         
-        // Find patient from allPatients list
+        console.log(`⚠️ Patient ${patientName} found in list but no detailed data. Creating minimal structure.`);
+
         const patientFromList = allPatients.find(
           p => (p.name || p.patient_name)?.toLowerCase() === patientName.toLowerCase()
         );
@@ -456,8 +423,7 @@ const DoctorDashboard = ({ user, onLogout }) => {
       }
     } catch (err) {
       console.error("Error fetching patient details:", err);
-      
-      // ✅ Even on error, try to use data from allPatients list
+
       const patientFromList = allPatients.find(
         p => (p.name || p.patient_name)?.toLowerCase() === patientName.toLowerCase()
       );
@@ -487,7 +453,6 @@ const DoctorDashboard = ({ user, onLogout }) => {
     }
   };
 
-  // ✅ Update patient medical records
   const handleUpdateRecords = async (e) => {
     e.preventDefault();
     
@@ -503,8 +468,7 @@ const DoctorDashboard = ({ user, onLogout }) => {
 
     try {
     setLoading(prev => ({ ...prev, update: true }));
-    
-    // ✅ CORRECT: POST to /update_patient (no patient name in URL)
+
       const token = await getFirebaseToken();
       const res = await axios.post(`${API_URL}/update_patient`, {
         patient_name: selectedPatient,
@@ -522,15 +486,13 @@ const DoctorDashboard = ({ user, onLogout }) => {
 
       if (res.data.success) {
         showToast(cleanToastMessage(res.data.message), "success");
-        
-        // Update local state with returned patient data
+
         if (res.data.patient) {
           setSelectedPatientData(res.data.patient);
         }
-        
-        // Refresh patient list
+
         fetchMyPatients();
-        fetchAccessLogs(); // Update logs since this is a logged action
+        fetchAccessLogs(); 
       } else {
         showToast(cleanToastMessage(res.data.message), "error");
       }
@@ -545,7 +507,7 @@ const DoctorDashboard = ({ user, onLogout }) => {
 
   return (
     <div className="ehr-layout">
-      {/* Sidebar */}
+      {}
       <aside className="ehr-sidebar">
         <div className="ehr-sidebar-header">
           <FaHospitalUser className="ehr-logo" />
@@ -599,9 +561,9 @@ const DoctorDashboard = ({ user, onLogout }) => {
         </div>
       </aside>
 
-      {/* Main Content */}
+      {}
       <main className="ehr-main">
-        {/* Header - Fixed at top */}
+        {}
         <header className="ehr-header">
           <div className="header-left">
             <h1>Welcome, Dr. {user.name}</h1>
@@ -623,7 +585,7 @@ const DoctorDashboard = ({ user, onLogout }) => {
           </div>
         </header>
 
-        {/* ============== TOAST NOTIFICATION ============== */}
+        {}
         {toast.show && (
           <div className={`toast-notification toast-${toast.type}`}>
             <div className="toast-content">
@@ -635,7 +597,7 @@ const DoctorDashboard = ({ user, onLogout }) => {
           </div>
         )}
 
-        {/* ============== ERROR NOTIFICATION ============== */}
+        {}
         {error && (
           <div className="error-banner">
             <FaExclamationTriangle /> {error}
@@ -645,9 +607,9 @@ const DoctorDashboard = ({ user, onLogout }) => {
           </div>
         )}
 
-        {/* ============== SCROLLABLE CONTENT WRAPPER ============== */}
+        {}
         <div className="ehr-content-wrapper">
-        {/* ------------------ Dashboard TAB ------------------ */}
+        {}
         {activeTab === "dashboard" && (
           <DoctorHomeTab 
             trustScore={trustScore}
@@ -667,11 +629,11 @@ const DoctorDashboard = ({ user, onLogout }) => {
           />
         )}
 
-        {/* ------------------ MY PATIENTS TAB ------------------ */}
+        {}
         {activeTab === "patients" && (
           <>
             {!isInsideNetwork ? (
-              // ✅ Network restriction message
+              
               <section className="ehr-section">
                 <div className="error-banner" style={{ marginBottom: 0 }}>
                   <FaExclamationTriangle /> 🚫 "My Patients" is only available inside the hospital network for security purposes.
@@ -706,7 +668,7 @@ const DoctorDashboard = ({ user, onLogout }) => {
           </>
         )}
 
-        {/* ------------------ Access Logs TAB ------------------ */}
+        {}
         {activeTab === "accessLogs" && (
           <DoctorAccessLogsTab 
             logs={logs}
@@ -715,17 +677,17 @@ const DoctorDashboard = ({ user, onLogout }) => {
           />
         )}
 
-        {/* ------------------ Permissions TAB ------------------ */}
+        {}
         {activeTab === "permissions" && (
             <DoctorPermissionsTab user={user} />
         )}
 
-        {/* ------------------ Alerts TAB ------------------ */}
+        {}
         {activeTab === "alerts" && (
             <DoctorAlertsTab />
         )}
 
-        {/* ============== PDF PREVIEW MODAL ============== */}
+        {}
         {showPDFModal && accessResponse?.pdf_link && (
           <div className="modal-overlay" onClick={() => setShowPDFModal(false)}>
             <div
@@ -764,7 +726,7 @@ const DoctorDashboard = ({ user, onLogout }) => {
           </div>
         )}
 
-        {/* ============== JUSTIFICATION MODAL ============== */}
+        {}
         {showJustificationModal && (
           <div className="modal-overlay" onClick={() => setShowJustificationModal(false)}>
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -810,19 +772,19 @@ const DoctorDashboard = ({ user, onLogout }) => {
           </div>
         )}
 
-        {/* ============== PATIENT FORM MODAL ============== */}
+        {}
         <PatientFormModal
           isOpen={showPatientForm}
           onClose={() => setShowPatientForm(false)}
           doctorName={user.name}
           onSuccess={() => {
-            fetchAllPatients(); // ✅ Refresh main patient list
-            fetchMyPatients();  // ✅ Refresh "My Patients" list
+            fetchAllPatients(); 
+            fetchMyPatients();  
             showToast("✅ Patient added successfully!", "success");
             setShowPatientForm(false);
           }}
         />
-        </div> {/* Close ehr-content-wrapper */}
+        </div> {}
       </main>
     </div>
   );

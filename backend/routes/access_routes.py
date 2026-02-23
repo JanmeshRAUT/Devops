@@ -8,7 +8,6 @@ import json
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Import database functions
 from database import (
     SessionLocal,
     get_patient_by_name,
@@ -46,19 +45,18 @@ def normal_access():
                 "ip_address": ip,
                 "timestamp": datetime.utcnow()
             })
-            
-            # Update trust score
+
             user = get_user_by_email(db, name)
             if user:
                 ts = get_trust_score(db, user.id, patient_name) or update_trust_score(db, user.id, patient_name, 35)
-            
+
             return jsonify({"success": False, "message": "❌ Access denied — outside hospital network.", "patient_data": {}, "pdf_link": None}), 403
-        
+
         patient_info = get_patient_by_name(db, patient_name)
-        
+
         if not patient_info:
             return jsonify({"success": False, "message": f"❌ Patient '{patient_name}' not found"}), 404
-        
+
         user = get_user_by_email(db, name)
         create_access_log(db, {
             "user_id": user.id if user else name,
@@ -68,15 +66,14 @@ def normal_access():
             "ip_address": ip,
             "timestamp": datetime.utcnow()
         })
-        
-        # Update trust score positively
+
         if user:
             update_trust_score(db, user.id, patient_info.id, 52)
-        
+
         print(f"✅ Access granted to {name} for {patient_name}")
-        
+
         return jsonify({
-            "success": True, 
+            "success": True,
             "message": f"✅ Patient data accessed for {patient_name}",
             "patient_data": {
                 "id": patient_info.id,
@@ -86,7 +83,7 @@ def normal_access():
             },
             "pdf_link": f"/api/generate_patient_pdf/{patient_name}"
         }), 200
-        
+
     except Exception as e:
         print(f"❌ normal_access error: {e}")
         traceback.print_exc()
@@ -98,7 +95,6 @@ def normal_access():
         return jsonify({"success": False, "message": str(e)}), 500
     finally:
         db.close()
-
 
 @access_bp.route("/restricted_access", methods=["POST"])
 @limiter.limit("20 per hour")
@@ -120,11 +116,11 @@ def restricted_access():
                 "timestamp": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
             })
             update_trust_score(name, +1)
-            
+
             patient_info = get_patient_by_name(patient_name)
             if not patient_info:
                 return jsonify({"success": False, "message": "❌ Patient not found", "patient_data": {}, "pdf_link": None}), 404
-            
+
             patient_info_decrypted = patient_info.copy()
             patient_info_decrypted = decrypt_sensitive_data(patient_info_decrypted, ["diagnosis", "treatment", "notes"])
 
@@ -160,17 +156,17 @@ def restricted_access():
             "status": "Granted" if is_valid else "Flagged",
             "timestamp": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
         }
-        
+
         safe_log_access(log_data)
         update_trust_score(name, +2 if is_valid else -3)
 
         patient_info = get_patient_by_name(patient_name)
         if not patient_info:
             return jsonify({"success": False, "message": "❌ Patient not found", "patient_data": {}, "pdf_link": None}), 404
-        
+
         patient_info_decrypted = patient_info.copy()
         patient_info_decrypted = decrypt_sensitive_data(patient_info_decrypted, ["diagnosis", "treatment", "notes"])
-        
+
         pdf_link = f"/generate_patient_pdf/{patient_name}"
         return jsonify({"success": is_valid, "message": ("🌐 Restricted Access Granted ✅" if is_valid else "⚠️ Access flagged for review."), "patient_data": patient_info_decrypted, "pdf_link": pdf_link}), (200 if is_valid else 403)
     except Exception as e:
@@ -199,10 +195,8 @@ def emergency_access():
 
     label, score = analyze_justification(justification)
 
-    # 🚑 STRICT & SAFE emergency logic
     genuine = (label == "emergency" and score > 0.70)
 
-    # Log access
     log_data = {
         "doctor_name": name,
         "doctor_role": role,
@@ -220,7 +214,6 @@ def emergency_access():
     update_trust_score(name, +3 if genuine else -10)
     msg = "🚑 Emergency access approved ✅" if genuine else "⚠️ Suspicious justification — logged."
 
-    # Fetch patient data
     patient_info = get_patient_by_name(patient_name)
 
     if not patient_info and patient_name:
@@ -245,14 +238,13 @@ def emergency_access():
         "pdf_link": pdf_link
     }), (200 if genuine else 403)
 
-
 @access_bp.route("/precheck", methods=["POST"])
 @limiter.limit("60 per hour")
 def precheck_access():
     try:
         data = request.get_json()
         text = (data.get("justification") or "").strip()
-        
+
         if not text:
             return jsonify({
                 "status": "invalid",
@@ -260,10 +252,8 @@ def precheck_access():
                 "score": 0.0
             })
 
-        # Run AI Analysis
         label, score = analyze_justification(text)
-        
-        # Determine User Feedback
+
         if label == "emergency":
             if score > 0.8:
                 return jsonify({"status": "valid", "message": "✅ Excellent justification", "score": score})
@@ -271,21 +261,20 @@ def precheck_access():
                 return jsonify({"status": "weak", "message": "🟡 Good, but maintain detail", "score": score})
             else:
                 return jsonify({"status": "weak", "message": "⚠️ Weak medical context", "score": score})
-                
+
         elif label == "restricted":
-            # Restricted is acceptable for remote, but check score
+
             if score > 0.7:
                  return jsonify({"status": "valid", "message": "✅ Valid reason", "score": score})
             else:
                  return jsonify({"status": "weak", "message": "🟡 Vague reason", "score": score})
-                 
-        else: # invalid/admin/non-medical
+
+        else:
             return jsonify({"status": "invalid", "message": "🔴 Invalid justification", "score": score})
 
     except Exception as e:
         print("❌ precheck error:", e)
         return jsonify({"status": "invalid", "message": "Analysis unavailable", "score": 0.0}), 500
-
 
 @access_bp.route("/log_access", methods=["POST"])
 @limiter.limit("100 per hour")
@@ -304,11 +293,9 @@ def log_access():
             "status": data.get("status", "Pending"),
             "timestamp": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
         }
-        
-        # Use static_db logging
+
         add_access_log(log)
-        
-        # Log to DoctorAccessLog
+
         if doctor_name != "Unknown" and patient_name != "N/A" and (doctor_role or "").lower() == "doctor":
             doctor_access_log = {
                 "doctor_name": doctor_name,
@@ -319,8 +306,7 @@ def log_access():
                 "created_at": datetime.utcnow().isoformat()
             }
             add_doctor_log(doctor_access_log)
-        
-        # Log to NurseAccessLog
+
         if doctor_name != "Unknown" and (doctor_role or "").lower() == "nurse":
             nurse_access_log = {
                 "nurse_name": doctor_name,
@@ -331,7 +317,7 @@ def log_access():
                 "created_at": datetime.utcnow().isoformat()
             }
             add_nurse_log(nurse_access_log)
-            
+
         print(f"🩺 Log added: {doctor_name} - {log['action']}")
         return jsonify({"message": "Access logged ✅"})
 
@@ -354,12 +340,10 @@ def request_temp_access():
             update_trust_score(name, -3)
             return jsonify({"success": False, "message": "❌ Temporary access only available inside hospital network"}), 403
 
-        # Check patient exists
         patient_info = get_patient_by_name(patient_name)
         if not patient_info:
             return jsonify({"success": False, "message": "❌ Patient not found", "patient_data": {}, "pdf_link": None}), 404
 
-        # Log request
         temp_access_log = {
             "doctor_name": name,
             "doctor_role": role,
@@ -381,7 +365,7 @@ def request_temp_access():
         })
 
         update_trust_score(name, +1)
-        
+
         patient_info_decrypted = patient_info.copy()
         patient_info_decrypted = decrypt_sensitive_data(patient_info_decrypted, ["diagnosis", "treatment", "notes"])
 

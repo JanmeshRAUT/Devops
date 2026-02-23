@@ -20,7 +20,6 @@ import {
 const PatientDashboard = ({ user, onBack }) => {
   const navigate = useNavigate();
 
-  // ✅ ALL HOOKS AT THE TOP
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -30,12 +29,12 @@ const PatientDashboard = ({ user, onBack }) => {
     try {
       setLoading(true);
       setError(null);
-      // ✅ Use dedicated patient access history endpoint
+      
       const res = await axios.get(
         `${API_URL}/patient_access_history/${user.name}`
       );
       if (res.data.success) {
-        // Sort specifically by timestamp if not already sorted
+        
         const sortedLogs = (res.data.logs || []).sort((a, b) => 
             new Date(b.timestamp) - new Date(a.timestamp)
         );
@@ -65,7 +64,6 @@ const PatientDashboard = ({ user, onBack }) => {
     }
   }, [user?.name, fetchLogs]);
 
-  // ✅ NOW check user validity AFTER hooks
   if (!user || !user.name) {
     return (
       <div className="fallback-container">
@@ -85,7 +83,6 @@ const PatientDashboard = ({ user, onBack }) => {
     else navigate("/");
   };
 
-  // Helper function to get status icon
   const getStatusIcon = (status) => {
     if (status.includes("Grant") || status.includes("Approve") || status.includes("Success")) {
       return <FaCheckCircle className="status-icon granted-icon" />;
@@ -95,7 +92,6 @@ const PatientDashboard = ({ user, onBack }) => {
     return <FaCircle className="status-icon pending-icon" />;
   };
 
-  // Helper function to get access type badge color
   const getAccessTypeBadge = (accessType) => {
     if (accessType.includes("Emergency")) return "emergency";
     if (accessType.includes("Normal")) return "normal";
@@ -106,7 +102,7 @@ const PatientDashboard = ({ user, onBack }) => {
 
   return (
     <div className="patient-dashboard">
-      {/* ✅ Enhanced Header */}
+      {}
       <header className="patient-header">
         <div className="header-content">
           <div className="header-info">
@@ -121,7 +117,7 @@ const PatientDashboard = ({ user, onBack }) => {
         </div>
       </header>
 
-      {/* ✅ Stats Bar */}
+      {}
       <section className="stats-bar">
         <div className="stat-item">
           <div className="stat-icon access-icon">
@@ -154,8 +150,8 @@ const PatientDashboard = ({ user, onBack }) => {
         </div>
       </section>
 
-      {/* ✅ Logs Section */}
-      {/* ✅ Logs Section */}
+      {}
+      {}
       <section className="logs-section">
         <div className="section-header">
           <div className="section-title">
@@ -198,7 +194,7 @@ const PatientDashboard = ({ user, onBack }) => {
             {logs.length > 0 ? (
               logs.map((log, idx) => (
                 <div key={idx} className="access-log-card">
-                  {/* Card Header */}
+                  {}
                   <div className="log-card-header">
                     <div className="log-user-info">
                       <div className="user-avatar">
@@ -214,9 +210,9 @@ const PatientDashboard = ({ user, onBack }) => {
                     </div>
                   </div>
 
-                  {/* Card Body */}
+                  {}
                   <div className="log-card-body">
-                    {/* Status */}
+                    {}
                     <div className="log-item">
                       <div className="log-item-label">
                         <span className="log-icon">{getStatusIcon(log.status)}</span>
@@ -227,7 +223,7 @@ const PatientDashboard = ({ user, onBack }) => {
                       </div>
                     </div>
 
-                    {/* Access Type */}
+                    {}
                     <div className="log-item">
                       <div className="log-item-label">
                         <span className="log-icon"><FaFileAlt /></span>
@@ -236,7 +232,7 @@ const PatientDashboard = ({ user, onBack }) => {
                       <div className="log-item-value">{log.accessType}</div>
                     </div>
 
-                    {/* Justification */}
+                    {}
                     {log.justification && log.justification !== "Routine Checkup" && (
                       <div className="log-item">
                         <div className="log-item-label">
@@ -249,7 +245,7 @@ const PatientDashboard = ({ user, onBack }) => {
                       </div>
                     )}
 
-                    {/* Timestamp */}
+                    {}
                     <div className="log-item">
                       <div className="log-item-label">
                         <span className="log-icon"><FaClock /></span>
@@ -269,7 +265,7 @@ const PatientDashboard = ({ user, onBack }) => {
                     </div>
                   </div>
 
-                  {/* Card Footer */}
+                  {}
                   <div className="log-card-footer">
                     <span className="source-badge">{log.source === "doctor" ? "📋 Doctor Log" : "🔐 System Log"}</span>
                   </div>

@@ -17,13 +17,11 @@ import FlaggedEvents from "./admin/FlaggedEvents";
 import "../css/AdminDashboard.css";
 import "../css/Notifications.css";
 
-// Create axios instance with auth interceptor
 const apiClient = axios.create({
   baseURL: API_URL,
   timeout: 10000,
 });
 
-// Add Authorization token to all requests
 apiClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("adminToken");
@@ -41,7 +39,6 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Handle 401 responses globally
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -58,28 +55,24 @@ const AdminDashboard = ({ user, onLogout }) => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("users");
 
-  // Collections Data
   const [users, setUsers] = useState([]);
   const [systemLogs, setSystemLogs] = useState([]);
   const [doctorLogs, setDoctorLogs] = useState([]);
   const [nurseLogs, setNurseLogs] = useState([]);
   const [patients, setPatients] = useState([]);
 
-  // Refs for stable access and double-fetch prevention
   const usersRef = useRef(users);
   const systemLogsRef = useRef(systemLogs);
   const doctorLogsRef = useRef(doctorLogs);
   const nurseLogsRef = useRef(nurseLogs);
   const patientsRef = useRef(patients);
 
-  // Loading state refs to prevent concurrent fetches (React 18 Strict Mode fix)
   const isFetchingUsers = useRef(false);
   const isFetchingSystemLogs = useRef(false);
   const isFetchingDoctorLogs = useRef(false);
   const isFetchingNurseLogs = useRef(false);
   const isFetchingPatients = useRef(false);
 
-  // Success flags - to prevent re-fetching even if data is empty (e.g. 0 logs)
   const hasLoadedUsers = useRef(false);
   const hasLoadedSystemLogs = useRef(false);
   const hasLoadedDoctorLogs = useRef(false);
@@ -94,7 +87,6 @@ const AdminDashboard = ({ user, onLogout }) => {
 
   const [loading, setLoading] = useState(false);
 
-  // ✅ Fetch Users - Only if empty or forced
   const fetchUsers = useCallback(async (force = false) => {
     if (isFetchingUsers.current) return;
     if (!force && hasLoadedUsers.current) return;
@@ -120,7 +112,6 @@ const AdminDashboard = ({ user, onLogout }) => {
     }
   }, [navigate]);
 
-  // ✅ Fetch System Logs - Lazy Load
   const fetchSystemLogs = useCallback(async (force = false) => {
     if (isFetchingSystemLogs.current) return;
     if (!force && hasLoadedSystemLogs.current) return;
@@ -139,7 +130,6 @@ const AdminDashboard = ({ user, onLogout }) => {
     }
   }, []);
 
-  // ✅ Fetch Doctor Logs - Lazy Load
   const fetchDoctorLogs = useCallback(async (force = false) => {
     if (isFetchingDoctorLogs.current) return;
     if (!force && hasLoadedDoctorLogs.current) return;
@@ -158,7 +148,6 @@ const AdminDashboard = ({ user, onLogout }) => {
     }
   }, []);
 
-  // ✅ Fetch Nurse Logs - Lazy Load
   const fetchNurseLogs = useCallback(async (force = false) => {
     if (isFetchingNurseLogs.current) return;
     if (!force && hasLoadedNurseLogs.current) return;
@@ -177,7 +166,6 @@ const AdminDashboard = ({ user, onLogout }) => {
     }
   }, []);
 
-  // ✅ Fetch Patients - Lazy Load
   const fetchPatients = useCallback(async (force = false) => {
     if (isFetchingPatients.current) return;
     if (!force && hasLoadedPatients.current) return;
@@ -196,7 +184,6 @@ const AdminDashboard = ({ user, onLogout }) => {
     }
   }, []);
 
-  // ✅ Lifecycle - Intelligent Data Loading
   useEffect(() => {
     const token = localStorage.getItem("adminToken");
     if (!token) {
@@ -204,10 +191,8 @@ const AdminDashboard = ({ user, onLogout }) => {
       return;
     }
 
-    // Always fetch users for authentication/context (lightweight usually)
     if (activeTab === "users" || activeTab === "userManagement") fetchUsers();
 
-    // Lazy load other heavy data only when tab is active
     if (
       activeTab === "systemLogs" ||
       activeTab === "analytics" ||
@@ -220,17 +205,15 @@ const AdminDashboard = ({ user, onLogout }) => {
       fetchNurseLogs();
     if (activeTab === "patients") fetchPatients();
 
-    // Analytics needs all data
     if (activeTab === "analytics" || activeTab === "reports") {
       fetchUsers();
       fetchSystemLogs();
-      fetchDoctorLogs(true); // Ensure fresh data for reports
+      fetchDoctorLogs(true); 
       fetchNurseLogs();
       fetchPatients();
     }
-    
-    // Polling for Notifications (Doctor Logs)
-    fetchDoctorLogs(); // Initial fetch for notifications
+
+    fetchDoctorLogs(); 
     const notificationInterval = setInterval(() => fetchDoctorLogs(true), 40000);
     
     return () => clearInterval(notificationInterval);
@@ -244,7 +227,6 @@ const AdminDashboard = ({ user, onLogout }) => {
     navigate,
   ]);
 
-  // ✅ Logout
   const handleLogout = () => {
     if (onLogout) onLogout();
     localStorage.clear();
@@ -253,7 +235,7 @@ const AdminDashboard = ({ user, onLogout }) => {
 
   return (
     <div className="admin-layout">
-      {/* Sidebar */}
+      {}
       <AdminSidebar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -261,9 +243,9 @@ const AdminDashboard = ({ user, onLogout }) => {
         onLogout={handleLogout}
       />
 
-      {/* Main Content */}
+      {}
       <main className="admin-main">
-        {/* Top Header */}
+        {}
         <header className="admin-header">
           <div className="header-left">
             <h1>Pages / Dashboard</h1>
@@ -284,7 +266,7 @@ const AdminDashboard = ({ user, onLogout }) => {
           </div>
         </header>
 
-        {/* Dynamic Content */}
+        {}
         {activeTab === "userManagement" && (
           <UserManagement
             users={users}

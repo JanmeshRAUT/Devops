@@ -9,7 +9,6 @@ import uuid
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Import database functions
 from database import (
     SessionLocal,
     create_patient,
@@ -51,7 +50,6 @@ def add_patient():
         if not all([doctor_name, patient_name, patient_email, diagnosis]):
             return jsonify({"success": False, "message": "❌ Missing required fields"}), 400
 
-        # Generate unique patient ID
         patient_id = f"PT-{str(uuid.uuid4())[:8].upper()}"
 
         patient_data = {
@@ -68,11 +66,9 @@ def add_patient():
             "status": "active",
             "created_at": datetime.utcnow()
         }
-        
-        # Add to PostgreSQL DB
+
         created_patient = create_patient(db, patient_data)
-        
-        # Log action
+
         create_access_log(db, {
             "user_id": doctor_name,
             "patient_id": patient_id,
@@ -80,7 +76,7 @@ def add_patient():
             "status": "SUCCESS",
             "timestamp": datetime.utcnow()
         })
-        
+
         create_audit_log(db, {
             "user_id": doctor_name,
             "action": "PATIENT_CREATED",
@@ -88,7 +84,7 @@ def add_patient():
             "entity_id": patient_id,
             "status": "success"
         })
-        
+
         print(f"✅ Patient {patient_name} added by Dr. {doctor_name}")
         return jsonify({"success": True, "message": f"✅ Patient {patient_name} registered successfully"}), 200
 
@@ -98,7 +94,6 @@ def add_patient():
         return jsonify({"success": False, "message": str(e)}), 500
     finally:
         db.close()
-
 
 @patient_bp.route("/update_patient", methods=["POST"])
 @limiter.limit("50 per hour")
@@ -113,21 +108,17 @@ def update_patient_route():
         if not patient_name:
             return jsonify({"success": False, "message": "❌ Patient name is required"}), 400
 
-        # Find patient by name
         patient = get_patient_by_name(db, patient_name)
-        
+
         if not patient:
             return jsonify({"success": False, "message": f"❌ Patient '{patient_name}' not found"}), 404
 
         patient_id = patient.id
-        
-        # Add metadata to updates
+
         updates["updated_at"] = datetime.utcnow()
 
-        # Update in PostgreSQL DB
         updated_patient = update_patient(db, patient_id, updates)
 
-        # Log system update
         create_access_log(db, {
             "user_id": updated_by,
             "patient_id": patient_id,
@@ -135,7 +126,7 @@ def update_patient_route():
             "status": "SUCCESS",
             "timestamp": datetime.utcnow()
         })
-        
+
         create_audit_log(db, {
             "user_id": updated_by,
             "action": "PATIENT_UPDATED",
@@ -145,9 +136,8 @@ def update_patient_route():
             "status": "success"
         })
 
-        # Return updated patient
         return jsonify({
-            "success": True, 
+            "success": True,
             "message": f"✅ Patient '{patient_name}' updated successfully",
             "patient": {
                 "id": updated_patient.id,
@@ -177,7 +167,7 @@ def get_patient_route(patient_name):
         patient = get_patient_by_name(db, patient_name)
         if patient:
             return jsonify({
-                "success": True, 
+                "success": True,
                 "patient": {
                     "id": patient.id,
                     "name": patient.name,
@@ -226,12 +216,11 @@ def generate_patient_pdf(patient_name):
     try:
         if not patient_name or not patient_name.strip():
             return jsonify({"success": False, "message": "❌ Patient name is required"}), 400
-        
+
         patient = get_patient_by_name(db, patient_name)
         if not patient:
             return jsonify({"success": False, "message": f"❌ Patient data not found for '{patient_name}'"}), 404
-        
-        # Convert to dict for PDF generation
+
         patient_dict = {
             "name": patient.name,
             "email": patient.email,
@@ -242,25 +231,25 @@ def generate_patient_pdf(patient_name):
             "diagnosis": patient.diagnosis,
             "created_at": patient.created_at.isoformat() if patient.created_at else None
         }
-        
+
         FONT_CANDIDATES = [
             "fonts/DejaVuSans.ttf",
             "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
             "C:\\Windows\\Fonts\\DejaVuSans.ttf"
         ]
-        
+
         font_paths = [p for p in FONT_CANDIDATES if os.path.exists(p)]
         pdf_buffer = create_patient_pdf_bytes(patient_dict, font_paths=font_paths)
-        
+
         filename = f"{(patient.name or 'patient').replace(' ', '_')}_EHR_Report.pdf"
-        
+
         return send_file(
-            pdf_buffer, 
-            mimetype="application/pdf", 
-            as_attachment=False, 
+            pdf_buffer,
+            mimetype="application/pdf",
+            as_attachment=False,
             download_name=filename
         )
-        
+
     except Exception as e:
         print(f"❌ PDF Generation Error: {e}")
         traceback.print_exc()
@@ -275,14 +264,14 @@ def delete_patient_route(patient_name):
     try:
         data = request.get_json() or {}
         admin_id = data.get("admin_id")
-        
+
         patient = get_patient_by_name(db, patient_name)
         if not patient:
             return jsonify({"success": False, "message": "❌ Patient not found"}), 404
-            
+
         patient_id = patient.id
         delete_patient(db, patient_id)
-        
+
         create_audit_log(db, {
             "user_id": admin_id,
             "action": "PATIENT_DELETED",
@@ -290,10 +279,10 @@ def delete_patient_route(patient_name):
             "entity_id": patient_id,
             "status": "success"
         })
-        
+
         print(f"Patient {patient_name} deleted")
         return jsonify({"success": True, "message": "✅ Patient deleted successfully"}), 200
-        
+
     except Exception as e:
         print("❌ delete_patient error:", e)
         traceback.print_exc()
