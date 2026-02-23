@@ -1,27 +1,56 @@
 
 from functools import wraps
 from flask import request, jsonify
-from firebase_admin import auth
+from database import SessionLocal, get_user_by_email
+from token_manager import verify_token
 from utils import ADMIN_EMAIL
 
 # ---------- Authorization Decorator ----------
 def verify_admin_token(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        token = request.headers.get("Authorization")
-        if not token:
+        """Verify admin access - PostgreSQL Database (Firebase disabled)"""
+        # ✅ Check for Authorization header with Bearer token
+        authorization = request.headers.get("Authorization")
+        
+        if not authorization:
             print("🚫 Missing Authorization header")
-            return jsonify({"success": False, "error": "Missing token"}), 401
+            return jsonify({"success": False, "error": "Missing Authorization header"}), 401
+        
+        db = SessionLocal()
         try:
-            if token.startswith("Bearer "):
-                token = token.split("Bearer ")[1]
-            decoded = auth.verify_id_token(token)
-            email = decoded.get("email")
-            # You could strictly enforce ADMIN_EMAIL here if desired
-            # if email != ADMIN_EMAIL:
-            #     return jsonify({"success": False, "error": "Unauthorized"}), 403
-            return f(*args, **kwargs)
+            # ✅ Extract Bearer token
+            if authorization.startswith("Bearer "):
+                token = authorization.split("Bearer ")[1]
+                print(f"📋 Token received: {type(token)} length={len(str(token))}")
+                print(f"   Token preview: {str(token)[:50]}...")
+                
+                # ✅ Verify token using centralized token manager
+                session = verify_token(token)
+                
+                if not session:
+                    print(f"🚫 Invalid or expired token")
+                    return jsonify({"success": False, "error": "Invalid or expired token"}), 401
+                
+                # ✅ Verify user is still an admin
+                email = session.get("email")
+                user = get_user_by_email(db, email)
+                
+                if not user or user.role != "admin":
+                    print(f"🚫 User is not an admin: {email}")
+                    return jsonify({"success": False, "error": "Not an admin"}), 403
+                
+                # ✅ Token is valid, proceed
+                return f(*args, **kwargs)
+            else:
+                print("🚫 Invalid authorization format")
+                return jsonify({"success": False, "error": "Invalid authorization format"}), 401
+            
         except Exception as e:
-            print(f"❌ Token verification failed: {e}")
-            return jsonify({"success": False, "error": "Invalid or expired token"}), 401
+            print(f"❌ Token verification error: {e}")
+            return jsonify({"success": False, "error": "Token verification failed"}), 401
+        finally:
+            db.close()
+    
     return decorated_function
+

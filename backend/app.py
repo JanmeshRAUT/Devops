@@ -15,6 +15,7 @@ warnings.filterwarnings("ignore", ".*Google will stop supporting.*", category=Fu
 
 from limiter import limiter
 from ml_logic import load_ml_model, ml_model
+import firebase_init  # Initialize PostgreSQL database
 
 # Import Blueprints
 from routes.auth_routes import auth_bp
@@ -63,20 +64,23 @@ app.register_blueprint(patient_bp)
 app.register_blueprint(access_bp)
 app.register_blueprint(logs_bp)
 
-# ✅ LOAD ML MODEL AT STARTUP (eager loading)
-print("\n🧠 Loading ML model at startup...")
-load_ml_model()
+# ✅ LOAD ML MODEL AT STARTUP (only in main process, not reloader)
+# Use WERKZEUG_RUN_MAIN to prevent double initialization on reloader
+if os.getenv("WERKZEUG_RUN_MAIN") == "true":
+    print("\n🧠 Loading ML model at startup...")
+    load_ml_model()
 
 if __name__ == "__main__":
     # Get port from environment variable or default to 5000
     port = int(os.getenv("PORT", 5000))
     
-    # ✅ Use FLASK_ENV environment variable for debug mode (not port)
-    # Set FLASK_ENV=development locally, FLASK_ENV=production on Render
-    is_development = os.getenv("FLASK_ENV", "development").lower() == "development"
+    # ✅ Check if running in production
+    is_production = os.getenv("FLASK_ENV", "").lower() == "production"
     
     print(f"\n🚀 Starting Flask app on port {port} (FLASK_ENV={os.getenv('FLASK_ENV', 'development')})")
-    print(f"   Debug Mode: {'ON' if is_development else 'OFF'}")
-    print(f"   Workers: {'1 (with reloader)' if is_development else 'Multiple (production)'}\n")
+    print(f"   Environment: {'PRODUCTION' if is_production else 'DEVELOPMENT'}")
+    print(f"   Auto-reload: {'OFF' if is_production else 'ON (reloads on file changes)'}\n")
     
-    app.run(host="0.0.0.0", port=port, debug=is_development)
+    # ✅ Enable reloader for development (auto-reload on file changes)
+    # ✅ Disable debug mode to prevent double initialization
+    app.run(host="0.0.0.0", port=port, debug=False, use_reloader=not is_production)

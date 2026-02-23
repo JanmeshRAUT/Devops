@@ -1,8 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "./firebaseConfig";
 import "../css/Login.css";
 
 const AdminLogin = ({ onLogin }) => {
@@ -18,40 +16,36 @@ const AdminLogin = ({ onLogin }) => {
     setMessage("");
 
     try {
-      // ✅ Firebase Authentication
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-      const token = await userCredential.user.getIdToken();
-
-      // ✅ Verify with Backend
+      // ✅ Use Static Database authentication (Firebase disabled)
       const response = await axios.post(
         "http://localhost:5000/admin/login",
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
+        {
+          email: email.toLowerCase(),
+          password: password
+        }
       );
 
       if (response.data.success) {
-        // ✅ Store token in localStorage first (before state update)
-        localStorage.setItem("adminToken", token);
-        onLogin(token);
+        // ✅ Store token + user info in localStorage
+        localStorage.setItem("adminToken", response.data.token); // ✅ Store the bearer token
+        localStorage.setItem("adminUser", JSON.stringify(response.data.user));
+        localStorage.setItem("userRole", "admin");
+        onLogin(response.data.token); // ✅ Pass TOKEN, not user object
         setMessage("✅ Admin login successful!");
         // Give localStorage time to persist before navigation
         setTimeout(() => {
           navigate("/admin/dashboard");
         }, 500);
       } else {
-        setMessage("❌ Unauthorized: Not an admin user");
+        setMessage("❌ " + (response.data.error || "Login failed"));
       }
     } catch (error) {
       console.error("Admin login error:", error);
 
-      if (error.code === "auth/user-not-found") {
-        setMessage("❌ User not found");
-      } else if (error.code === "auth/wrong-password") {
-        setMessage("❌ Invalid password");
+      if (error.response?.status === 401) {
+        setMessage("❌ Invalid email or password");
+      } else if (error.response?.status === 403) {
+        setMessage("❌ Not an admin account");
       } else if (error.response?.data?.error) {
         setMessage("❌ " + error.response.data.error);
       } else {

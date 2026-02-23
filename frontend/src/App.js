@@ -28,6 +28,7 @@ function App() {
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
     const savedAdminToken = localStorage.getItem("adminToken");
+    const savedAdminUser = localStorage.getItem("adminUser"); // ✅ Restore admin user
     
     if (savedUser) {
       try {
@@ -42,6 +43,9 @@ function App() {
     if (savedAdminToken) {
       setAdminToken(savedAdminToken);
     }
+    
+    // ✅ Note: savedAdminUser is optional, used for display info
+    // The token is what matters for authentication
 
     setLoading(false);
   }, []);

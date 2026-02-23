@@ -2,10 +2,10 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { API_URL } from "../api";
 import "../css/Login.css";
-import "../css/Notifications.css"; // <-- Add this if not present
+import "../css/Notifications.css";
 import { FaTimes } from "react-icons/fa";
-import { auth } from "./firebaseConfig";
-import { signInWithEmailAndPassword } from "firebase/auth";
+// ✅ Firebase removed from admin login (using Static Database)
+// Admin login now uses: POST /admin/login with email & password
 
 const Login = ({ onLogin }) => {
 	const [step, setStep] = useState(1);
@@ -52,33 +52,31 @@ const Login = ({ onLogin }) => {
 				setLoading(true);
 				setMessage("Verifying admin credentials...");
 
-				// ✅ Authenticate with Firebase using email & password
-				const userCredential = await signInWithEmailAndPassword(auth, email, password);
-				const idToken = await userCredential.user.getIdToken();
-
-				// ✅ Verify with backend
+				// ✅ Use Static Database authentication (Firebase disabled)
 				const res = await axios.post(
 					`${API_URL}/admin/login`,
-					{},
 					{
-						headers: { Authorization: `Bearer ${idToken}` },
+						email: email.toLowerCase(),
+						password: password
 					}
 				);
 
 				if (res.data.success) {
 					setMessage("✅ Admin authenticated!");
-					onLogin("admin", "Admin");
+					onLogin("admin", res.data.user.name);
 				} else {
 					setMessage("❌ " + (res.data.error || "Admin verification failed"));
 				}
 			} catch (error) {
 				console.error("Admin auth error:", error);
-				if (error.code === "auth/user-not-found") {
-					setMessage("❌ Admin email not found in Firebase");
-				} else if (error.code === "auth/wrong-password") {
-					setMessage("❌ Incorrect password");
-				} else if (error.response?.data?.error) {
-					setMessage("❌ " + error.response.data.error);
+				if (error.response?.data?.error) {
+					if (error.response.status === 401) {
+						setMessage("❌ Invalid email or password");
+					} else if (error.response.status === 403) {
+						setMessage("❌ Not an admin account");
+					} else {
+						setMessage("❌ " + error.response.data.error);
+					}
 				} else {
 					setMessage("❌ Admin authentication failed");
 				}

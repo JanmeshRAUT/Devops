@@ -10,6 +10,18 @@ export const createApiClient = (showNotification) => {
     baseURL: process.env.REACT_APP_API_URL || "http://localhost:5000",
   });
 
+  // ✅ Request interceptor - Add token to all requests
+  client.interceptors.request.use(
+    (config) => {
+      const token = localStorage.getItem("adminToken");
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      return config;
+    },
+    (error) => Promise.reject(error)
+  );
+
   // Response interceptor for error handling
   client.interceptors.response.use(
     (response) => response,
@@ -23,6 +35,9 @@ export const createApiClient = (showNotification) => {
 
         if (status === 401) {
           errorMessage = "❌ Unauthorized: Please login again";
+          // Clear stored token on 401
+          localStorage.removeItem("adminToken");
+          localStorage.removeItem("adminUser");
         } else if (status === 403) {
           errorMessage = "❌ Access Denied: You don't have permission for this action";
         } else if (status === 404) {

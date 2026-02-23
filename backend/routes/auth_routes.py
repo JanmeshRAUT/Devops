@@ -1,7 +1,5 @@
 
 from flask import Blueprint, request, jsonify
-from firebase_admin import auth
-from google.cloud.firestore import FieldFilter
 import random
 import string
 import time
@@ -13,7 +11,8 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from limiter import limiter
-from firebase_init import db, firebase_admin_initialized
+from database import SessionLocal, verify_user_credentials, create_audit_log
+from token_manager import create_admin_token
 from utils import send_otp_email, ADMIN_EMAIL
 
 auth_bp = Blueprint('auth_routes', __name__)
@@ -23,72 +22,112 @@ otp_sessions = {}
 
 @auth_bp.route("/admin/login", methods=["POST"])
 def admin_login():
-    token = request.headers.get("Authorization")
-    if not token:
-        return jsonify({"error": "Missing token"}), 401
+    """Admin login using PostgreSQL database"""
+    data = request.get_json()
+    email = data.get("email", "").strip().lower()
+    password = data.get("password", "").strip()
+    
+    if not email or not password:
+        return jsonify({"error": "Email and password required"}), 400
+    
+    db = SessionLocal()
     try:
-        token = token.replace("Bearer ", "")
-        decoded = auth.verify_id_token(token)
-        email = decoded.get("email")
-        if email == ADMIN_EMAIL:
-            print(f"✅ Admin verified: {email}")
-            return jsonify({"success": True, "message": "Admin verified ✅"})
-        print(f"🚫 Unauthorized admin attempt: {email}")
-        return jsonify({"success": False, "error": "Not an admin"}), 403
-    except Exception as e:
-        print("❌ Token error:", e)
-        return jsonify({"error": "Invalid or expired token"}), 401
+        # Verify credentials using PostgreSQL database
+        user = verify_user_credentials(db, email, password)
+        
+        if not user or user.role != "admin":
+            print(f"🚫 Login failed for: {email}")
+            create_audit_log(db, {
+                "user_id": email,
+                "action": "ADMIN_LOGIN_FAILED",
+                "entity_type": "User",
+                "status": "failed"
+            })
+            return jsonify({"success": False, "error": "Invalid email or password"}), 401
+        
+        # ✅ Generate session token using token manager
+        token = create_admin_token(user.id, email)
+        
+        print(f"✅ Admin verified: {email}")
+        create_audit_log(db, {
+            "user_id": user.id,
+            "action": "ADMIN_LOGIN_SUCCESS",
+            "entity_type": "User",
+            "status": "success"
+        })
+        
+        return jsonify({
+            "success": True, 
+            "message": "Admin verified ✅",
+            "token": token,
+            "user": {
+                "id": user.id,
+                "name": user.name,
+                "email": user.email,
+                "role": user.role
+            }
+        }), 200
+    
+    finally:
+        db.close()
+
 
 @auth_bp.route("/user_login", methods=["POST"])
 @limiter.limit("5 per minute")  # ✅ Prevent brute force
 def user_login():
+    """User login for Doctor, Nurse, Patient using PostgreSQL"""
     data = request.get_json()
-    name = data.get("name", "").strip()
-    role = data.get("role", "").strip().lower()
-    email = data.get("email", "").strip()  # ✅ Get email from form
+    email = data.get("email", "").strip().lower()
+    password = data.get("password", "").strip()
     
     # ✅ Validate required fields
-    if not name or not role or not email:
-        return jsonify(success=False, error="Name, role, and email are required"), 400
+    if not email or not password:
+        return jsonify(success=False, error="Email and password are required"), 400
     
     # ✅ Validate email format
     if "@" not in email:
         return jsonify(success=False, error="Invalid email format"), 400
     
-    # Check name and role in database
-    if not firebase_admin_initialized:
-        return jsonify(success=False, error="❌ Firebase not configured on server"), 500
-    
+    db = SessionLocal()
     try:
-        # Query database to find user by name and role
-        users_ref = db.collection("users").where(
-            filter=FieldFilter("name", "==", name)
-        ).limit(1).stream()
+        # Verify user credentials using PostgreSQL database
+        user = verify_user_credentials(db, email, password)
         
-        user_found = False
-        for user_doc in users_ref:
-            user_data = user_doc.to_dict()
-            # Check if role matches
-            if user_data.get("role", "").lower() == role:
-                user_found = True
-                break
+        if not user:
+            print(f"🚫 Login failed for: {email}")
+            create_audit_log(db, {
+                "user_id": email,
+                "action": "USER_LOGIN_FAILED",
+                "entity_type": "User",
+                "status": "failed"
+            })
+            return jsonify(success=False, error="Invalid email or password"), 401
         
-        if not user_found:
-            return jsonify(success=False, error=f"No user found with name '{name}' and role '{role}'"), 404
+        role = user.role.lower()
+        if role not in ["doctor", "nurse", "patient"]:
+            return jsonify(success=False, error="Invalid user role"), 403
         
         # Generate OTP and create session
         otp = "".join(random.choices(string.digits, k=6))
-        session_id = f"{name}_{int(time.time())}"
+        session_id = f"{user.name}_{int(time.time())}"
         otp_sessions[session_id] = {
             "otp": otp,
             "expires": time.time() + 180,
-            "email": email,  # ✅ Use email from form
-            "name": name
+            "email": email,
+            "name": user.name,
+            "user_id": user.id,
+            "role": role
         }
         
-        # ✅ Send OTP to email provided in form
-        if send_otp_email(email, otp, name):
-            print(f"✅ OTP sent to {email} for {name} ({role})")
+        # ✅ Send OTP to user email
+        if send_otp_email(email, otp, user.name):
+            print(f"✅ OTP sent to {email} for {user.name} ({role})")
+            create_audit_log(db, {
+                "user_id": user.id,
+                "action": "OTP_SENT",
+                "entity_type": "User",
+                "status": "success"
+            })
             return jsonify(success=True, session_id=session_id, message="✅ OTP sent to your email"), 200
         else:
             return jsonify(success=False, error="Failed to send OTP. Please try again."), 500
@@ -96,7 +135,17 @@ def user_login():
     except Exception as e:
         print("❌ Login error:", e)
         traceback.print_exc()
+        create_audit_log(db, {
+            "action": "USER_LOGIN_ERROR",
+            "entity_type": "User",
+            "status": "error",
+            "details": {"error": str(e)}
+        })
         return jsonify(success=False, error="Server error. Please try again."), 500
+    
+    finally:
+        db.close()
+
 
 @auth_bp.route("/verify_otp", methods=["POST"])
 @limiter.limit("10 per minute")  # ✅ Allow multiple OTP attempts
