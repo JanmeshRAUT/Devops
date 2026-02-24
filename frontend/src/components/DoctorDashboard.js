@@ -60,10 +60,9 @@ const DoctorDashboard = ({ user, onLogout }) => {
 
   const [activeTab, setActiveTab] = useState("dashboard");
   const [trustScore, setTrustScore] = useState(0);
-  const [allPatients, setAllPatients] = useState([]);  
+  const [allPatients, setAllPatients] = useState([]);
   const [selectedPatient, setSelectedPatient] = useState("");
-  const [selectedPatientData, setSelectedPatientData] = useState(null);  
-  const [justification, setJustification] = useState("");
+  const [selectedPatientData, setSelectedPatientData] = useState(null);
   const [ipAddress, setIpAddress] = useState("");
   const [isInsideNetwork, setIsInsideNetwork] = useState(false);
   const [lastLogin, setLastLogin] = useState("");
@@ -80,16 +79,14 @@ const DoctorDashboard = ({ user, onLogout }) => {
   const [loading, setLoading] = useState({
     trust: false,
     patients: false,
-    logs: false,  
+    logs: false,
     access: false,
     myPatients: false,
-    update: false, 
+    update: false,
   });
   const [error, setError] = useState(null);
   const [showPDFModal, setShowPDFModal] = useState(false);
-  const [showJustificationModal, setShowJustificationModal] = useState(false);
-  const [showPatientForm, setShowPatientForm] = useState(false);  
-  const [currentAccessType, setCurrentAccessType] = useState("");
+  const [showPatientForm, setShowPatientForm] = useState(false);
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
 
   const showToast = (message, type = "info") => {
@@ -139,30 +136,20 @@ const DoctorDashboard = ({ user, onLogout }) => {
     try {
       setLoading((prev) => ({ ...prev, patients: true }));
 
-      const token = await getFirebaseToken();
-      
-      if (!token) {
-        console.warn("Skipping patient fetch: No valid token available");
-        setLoading(prev => ({ ...prev, patients: false }));
-        return;
-      }
-
-      const res = await axios.get(`${API_URL}/all_patients`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
+      // No auth required — endpoint is public; works for both Firebase & OTP login
+      const res = await axios.get(`${API_URL}/all_patients`);
       if (res.data.success) {
         setAllPatients(res.data.patients || []);
         setError(null);
+        console.log(`✅ Loaded ${res.data.patients?.length || 0} patients for search`);
       }
     } catch (err) {
       console.error("Error fetching patients:", err);
-      setError("Failed to load patients");
+      // Don't set global error — silently fall back to empty list
     } finally {
       setLoading((prev) => ({ ...prev, patients: false }));
     }
-  }, [getFirebaseToken]);
+  }, []);
 
   const fetchAccessLogs = useCallback(async () => {
     if (!user?.name) return;
@@ -258,19 +245,14 @@ const DoctorDashboard = ({ user, onLogout }) => {
     );
   }
 
-  const handleAccessRequest = async (type) => {
+  const handleAccessRequest = async (type, reason = "") => {
     if (!selectedPatient) {
       showToast("⚠️ Please select a patient first!", "warning");
       return;
     }
 
-    if (!isInsideNetwork && type !== "normal" && !justification.trim()) {
-      setCurrentAccessType(type);
-      setShowJustificationModal(true);
-      return;
-    }
-
-    await performAccessRequest(type, justification.trim());
+    // Justification modals are owned by DoctorHomeTab — they pass reason directly here
+    await performAccessRequest(type, reason);
   };
 
   const performAccessRequest = async (type, reason = "") => {
@@ -311,8 +293,6 @@ const DoctorDashboard = ({ user, onLogout }) => {
 
       fetchTrustScore();
       fetchAccessLogs();
-      setJustification("");
-      setShowJustificationModal(false);
     } catch (error) {
       console.error("Access request error:", error);
       const errorMsg = error.response?.data?.message || "❌ Access request failed.";
@@ -393,29 +373,30 @@ const DoctorDashboard = ({ user, onLogout }) => {
           notes: res.data.patient.notes || "",
         });
       } else {
-        
-        console.log(`⚠️ Patient ${patientName} found in list but no detailed data. Creating minimal structure.`);
+        // API returned no detailed data — fall back to data already in allPatients list
+        console.log(`⚠️ Patient ${patientName} not found via API. Using list data.`);
 
-        const patientFromList = allPatients.find(
-          p => (p.name || p.patient_name)?.toLowerCase() === patientName.toLowerCase()
+        const patientFromList = allPatients.find(p =>
+          (p.patientName || p.name || p.patient_name || "").toLowerCase() === patientName.toLowerCase()
         );
-        
+
         if (patientFromList) {
           const minimalData = {
-            name: patientFromList.name || patientFromList.patient_name,
-            email: patientFromList.email || "",
+            id: patientFromList.id,
+            name: patientFromList.patientName || patientFromList.name,
+            patientName: patientFromList.patientName || patientFromList.name,
+            patient_email: patientFromList.patient_email || patientFromList.email || "",
             age: patientFromList.age || 0,
             gender: patientFromList.gender || "",
             diagnosis: patientFromList.diagnosis || "",
             treatment: patientFromList.treatment || "",
             notes: patientFromList.notes || ""
           };
-          
           setSelectedPatientData(minimalData);
           setRecordForm({
-            diagnosis: minimalData.diagnosis || "",
-            treatment: minimalData.treatment || "",
-            notes: minimalData.notes || "",
+            diagnosis: minimalData.diagnosis,
+            treatment: minimalData.treatment,
+            notes: minimalData.notes,
           });
         } else {
           showToast("⚠️ Could not load patient details. Please try again.", "warning");
@@ -424,29 +405,30 @@ const DoctorDashboard = ({ user, onLogout }) => {
     } catch (err) {
       console.error("Error fetching patient details:", err);
 
-      const patientFromList = allPatients.find(
-        p => (p.name || p.patient_name)?.toLowerCase() === patientName.toLowerCase()
+      // Fallback: use data already loaded in allPatients
+      const patientFromList = allPatients.find(p =>
+        (p.patientName || p.name || p.patient_name || "").toLowerCase() === patientName.toLowerCase()
       );
-      
+
       if (patientFromList) {
         const fallbackData = {
-          name: patientFromList.name || patientFromList.patient_name,
-          email: patientFromList.email || "",
+          id: patientFromList.id,
+          name: patientFromList.patientName || patientFromList.name,
+          patientName: patientFromList.patientName || patientFromList.name,
+          patient_email: patientFromList.patient_email || patientFromList.email || "",
           age: patientFromList.age || 0,
           gender: patientFromList.gender || "",
           diagnosis: patientFromList.diagnosis || "",
           treatment: patientFromList.treatment || "",
           notes: patientFromList.notes || ""
         };
-        
         setSelectedPatientData(fallbackData);
         setRecordForm({
-          diagnosis: fallbackData.diagnosis || "",
-          treatment: fallbackData.treatment || "",
-          notes: fallbackData.notes || "",
+          diagnosis: fallbackData.diagnosis,
+          treatment: fallbackData.treatment,
+          notes: fallbackData.notes,
         });
-        
-        showToast("Using basic patient info. Fill in medical records below.", "info");
+        showToast("Using cached patient info.", "info");
       } else {
         showToast("❌ Error loading patient details", "error");
       }
@@ -566,7 +548,7 @@ const DoctorDashboard = ({ user, onLogout }) => {
         {}
         <header className="ehr-header">
           <div className="header-left">
-            <h1>Welcome, Dr. {user.name}</h1>
+            <h1>Welcome, {user.name}</h1>
             <p className="user-role">Role: {user.role}</p>
           </div>
 
@@ -611,13 +593,15 @@ const DoctorDashboard = ({ user, onLogout }) => {
         <div className="ehr-content-wrapper">
         {}
         {activeTab === "dashboard" && (
-          <DoctorHomeTab 
+          <DoctorHomeTab
             trustScore={trustScore}
             loading={loading}
             logs={logs}
             setActiveTab={setActiveTab}
             allPatients={allPatients}
+            myPatients={myPatients}
             selectedPatient={selectedPatient}
+            selectedPatientData={selectedPatientData}
             handleSelectPatient={handleSelectPatient}
             setShowPatientForm={setShowPatientForm}
             isInsideNetwork={isInsideNetwork}
@@ -629,42 +613,22 @@ const DoctorDashboard = ({ user, onLogout }) => {
           />
         )}
 
-        {}
         {activeTab === "patients" && (
           <>
-            {!isInsideNetwork ? (
-              
-              <section className="ehr-section">
-                <div className="error-banner" style={{ marginBottom: 0 }}>
-                  <FaExclamationTriangle /> 🚫 "My Patients" is only available inside the hospital network for security purposes.
-                </div>
-                <div className="restricted-access-container">
-                  <p className="restricted-access-title">
-                    Access Restricted
-                  </p>
-                  <p>
-                    You are currently accessing from outside the hospital network ({ipAddress}).
-                  </p>
-                  <p className="restricted-access-text">
-                    To view and manage your patient records, please access from within the hospital network.
-                  </p>
-                </div>
-              </section>
-            ) : (
-            <DoctorPatientsTab 
+            {!isInsideNetwork && (
+              <div className="error-banner" style={{ margin: "1rem 1.5rem 0", borderRadius: "8px" }}>
+                <FaExclamationTriangle /> ⚠️ You are accessing from outside the hospital network ({ipAddress}). View-only mode — some actions may be restricted.
+              </div>
+            )}
+            <DoctorPatientsTab
               myPatients={myPatients}
               loading={loading}
               selectedPatient={selectedPatient}
-              selectedPatientData={selectedPatientData}
-              recordForm={recordForm}
-              setRecordForm={setRecordForm}
               handleSelectPatient={handleSelectPatient}
-              handleUpdateRecords={handleUpdateRecords}
               fetchMyPatients={fetchMyPatients}
-              setSelectedPatient={setSelectedPatient}
+              setActiveTab={setActiveTab}
               isInsideNetwork={isInsideNetwork}
             />
-            )}
           </>
         )}
 
@@ -726,53 +690,7 @@ const DoctorDashboard = ({ user, onLogout }) => {
           </div>
         )}
 
-        {}
-        {showJustificationModal && (
-          <div className="modal-overlay" onClick={() => setShowJustificationModal(false)}>
-            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-              <div className="modal-header">
-                <h3>📝 Access Justification Required</h3>
-                <button
-                  className="modal-close-btn"
-                  onClick={() => setShowJustificationModal(false)}
-                >
-                  <FaTimes />
-                </button>
-              </div>
-              <div className="modal-body">
-                <p>Please provide a valid reason for <strong>{currentAccessType}</strong> access:</p>
-                <textarea
-                  className="justification-textarea"
-                  rows="5"
-                  placeholder="Enter detailed justification..."
-                  value={justification}
-                  onChange={(e) => setJustification(e.target.value)}
-                  autoFocus
-                />
-              </div>
-              <div className="modal-footer">
-                <button
-                  className="btn btn-gray"
-                  onClick={() => {
-                    setShowJustificationModal(false);
-                    setJustification("");
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  className="btn btn-blue"
-                  onClick={() => performAccessRequest(currentAccessType, justification.trim())}
-                  disabled={!justification.trim() || loading.access}
-                >
-                  {loading.access ? <FaSpinner className="spin-icon" /> : "Submit"}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
 
-        {}
         <PatientFormModal
           isOpen={showPatientForm}
           onClose={() => setShowPatientForm(false)}

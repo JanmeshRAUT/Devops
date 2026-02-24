@@ -25,6 +25,7 @@ const PatientFormModal = ({ isOpen, onClose, doctorName, onSuccess }) => {
     patient_email: "",
     age: "",
     gender: "Male",
+    medicalHistory: "",
     diagnosis: "",
     treatment: "",
     notes: ""
@@ -44,8 +45,8 @@ const PatientFormModal = ({ isOpen, onClose, doctorName, onSuccess }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!formData.patient_name || !formData.patient_email || !formData.diagnosis) {
-      setMessage("❌ Please fill all required fields");
+    if (!formData.patient_name.trim() || !formData.age || !formData.gender) {
+      setMessage("❌ Patient name, age, and gender are required");
       return;
     }
 
@@ -71,6 +72,7 @@ const PatientFormModal = ({ isOpen, onClose, doctorName, onSuccess }) => {
             patient_email: "",
             age: "",
             gender: "Male",
+            medicalHistory: "",
             diagnosis: "",
             treatment: "",
             notes: ""
@@ -144,7 +146,18 @@ const PatientFormModal = ({ isOpen, onClose, doctorName, onSuccess }) => {
           </div>
 
           <div className="form-group">
-            <label>Diagnosis *</label>
+            <label>Medical History</label>
+            <input
+              type="text"
+              name="medicalHistory"
+              value={formData.medicalHistory}
+              onChange={handleChange}
+              placeholder="e.g. Diabetes, Hypertension (comma-separated)"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Primary Diagnosis *</label>
             <input
               type="text"
               name="diagnosis"

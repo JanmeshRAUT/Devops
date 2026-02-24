@@ -46,13 +46,13 @@ router.post("/admin/login", async (req, res) => {
 });
 
 /**
- * User login endpoint
+ * User login endpoint — validates name + role against DB before sending OTP
  */
 router.post("/user_login", strictLimiter, async (req, res) => {
   try {
     const { name, role, email } = req.body;
     
-    // Validate required fields
+    // ── Step 1: Validate required fields ──
     if (!name || !role || !email) {
       return res.status(400).json({ error: "❌ Missing required fields: name, role, email" });
     }
@@ -65,16 +65,30 @@ router.post("/user_login", strictLimiter, async (req, res) => {
     if (!validRoles.includes(role.toLowerCase())) {
       return res.status(400).json({ error: `❌ Invalid role. Must be one of: ${validRoles.join(", ")}` });
     }
-    
-    // Generate and send OTP
+
+    // ── Step 2: Check DB — name AND role must exist ──
+    const existingUser = await get(
+      "SELECT * FROM users WHERE LOWER(name) = LOWER(?) AND LOWER(role) = LOWER(?)",
+      [name.trim(), role.trim()]
+    );
+
+    if (!existingUser) {
+      console.warn(`⚠️  Login attempt — no match for name="${name}" role="${role}"`);
+      return res.status(401).json({
+        error: `❌ No account found for name "${name}" with role "${role}". Please verify your details or contact your administrator.`
+      });
+    }
+
+    // ── Step 3: DB matched — send OTP to the provided email ──
+
     const otp = generateOTP();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
     
     otpSessions[email] = {
       otp,
       expiresAt,
-      name,
-      role: role.toLowerCase(),
+      name: existingUser.name,   // use DB name (canonical casing)
+      role: existingUser.role,   // use DB role
       attempts: 0
     };
     
@@ -82,13 +96,13 @@ router.post("/user_login", strictLimiter, async (req, res) => {
     
     if (!emailSent) {
       delete otpSessions[email];
-      return res.status(500).json({ error: "❌ Failed to send OTP email" });
+      return res.status(500).json({ error: "❌ Failed to send OTP email. Please try again." });
     }
     
-    console.log(`✅ OTP sent to ${email}`);
+    console.log(`✅ OTP sent to ${email} (${existingUser.role}: ${existingUser.name})`);
     res.json({
       success: true,
-      message: "✅ OTP sent to email",
+      message: `✅ OTP sent to ${email}`,
       sessionId: email
     });
   } catch (error) {
@@ -96,6 +110,7 @@ router.post("/user_login", strictLimiter, async (req, res) => {
     res.status(500).json({ error: "❌ Internal server error" });
   }
 });
+
 
 /**
  * Verify OTP endpoint

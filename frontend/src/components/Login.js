@@ -366,21 +366,38 @@ const Login = ({ onLogin }) => {
 							<div className="input-group">
 								<input
 									className="otp"
+									type="tel"
 									placeholder="• • • • • •"
 									maxLength="6"
+									pattern="[0-9]*"
 									value={otp}
 									onChange={(e) =>
-										setOtp(e.target.value.replace(/\D/g, ""))
+										setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
 									}
+									onKeyDown={(e) => {
+										// Allow: backspace, delete, tab, escape, enter, arrows
+										const allowed = ["Backspace", "Delete", "Tab", "Escape", "Enter", "ArrowLeft", "ArrowRight"];
+										if (allowed.includes(e.key)) return;
+										// Allow Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
+										if ((e.ctrlKey || e.metaKey) && ["a", "c", "v", "x"].includes(e.key.toLowerCase())) return;
+										// Block anything that is not a digit
+										if (!/^[0-9]$/.test(e.key)) e.preventDefault();
+									}}
+									onPaste={(e) => {
+										e.preventDefault();
+										const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+										setOtp(pasted);
+									}}
 									inputMode="numeric"
-									aria-label="OTP"
+									aria-label="OTP — numbers only"
+									autoComplete="one-time-code"
 									autoFocus
 								/>
 							</div>
 
 							<button
 								className="btn"
-								disabled={loading || !otp.trim()}
+								disabled={loading || otp.length !== 6}
 							>
 								{loading ? "Verifying..." : "Verify Identity →"}
 							</button>

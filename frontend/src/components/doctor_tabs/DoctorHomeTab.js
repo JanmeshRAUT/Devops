@@ -22,7 +22,9 @@ const DoctorHomeTab = ({
   logs,
   setActiveTab,
   allPatients,
+  myPatients,
   selectedPatient,
+  selectedPatientData,
   handleSelectPatient,
   setShowPatientForm,
   isInsideNetwork,
@@ -35,6 +37,8 @@ const DoctorHomeTab = ({
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [emergencyReason, setEmergencyReason] = useState('');
   const [showEmergencyModal, setShowEmergencyModal] = useState(false);
+  const [showRestrictedModal, setShowRestrictedModal] = useState(false);
+  const [restrictedReason, setRestrictedReason] = useState('');
   const [showMedicalRecordPage, setShowMedicalRecordPage] = useState(false); // NEW: State for medical record page
   const searchRef = useRef(null);
 
@@ -49,16 +53,29 @@ const DoctorHomeTab = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Build a Set of my-patient IDs for fast lookup
+  const myPatientIds = useMemo(() => {
+    const ids = new Set();
+    (myPatients || []).forEach(p => p.id && ids.add(p.id));
+    return ids;
+  }, [myPatients]);
+
   // Filter patients based on search term
   const filteredPatients = useMemo(() => {
-    if (!searchTerm.trim()) return allPatients;
-    return allPatients.filter(p => {
-      const name = (p.name || p.patient_name || "").toLowerCase();
-      const email = (p.email || "").toLowerCase();
-      const term = searchTerm.toLowerCase();
-      return name.includes(term) || email.includes(term);
+    const source = searchTerm.trim() ? allPatients : allPatients;
+    if (!searchTerm.trim()) return source;
+    const term = searchTerm.toLowerCase();
+    return source.filter(p => {
+      const name  = (p.patientName || p.name || p.patient_name || "").toLowerCase();
+      const email = (p.patient_email || p.email || "").toLowerCase();
+      const id    = String(p.id || "");
+      return name.includes(term) || email.includes(term) || id.includes(term);
     });
   }, [allPatients, searchTerm]);
+
+  // Split filtered results into MY patients vs OTHERS
+  const myFilteredPatients    = useMemo(() => filteredPatients.filter(p => myPatientIds.has(p.id)), [filteredPatients, myPatientIds]);
+  const otherFilteredPatients = useMemo(() => filteredPatients.filter(p => !myPatientIds.has(p.id)), [filteredPatients, myPatientIds]);
 
   // Sync search term with selected patient when it changes
   useEffect(() => {
@@ -67,7 +84,8 @@ const DoctorHomeTab = ({
     }
   }, [selectedPatient]);
 
-  const onSelectItem = (name) => {
+  const onSelectItem = (patient) => {
+    const name = patient.patientName || patient.name || patient.patient_name || "";
     handleSelectPatient(name);
     setSearchTerm(name);
     setIsSearchOpen(false);
@@ -248,71 +266,138 @@ const DoctorHomeTab = ({
             </div>
 
             <div className="patient-toolbar-content">
+              {/* Search Input */}
               <div className="search-field-wrapper" ref={searchRef}>
                 <FaSearch className="field-icon" />
                 <input
                   type="text"
                   className="patient-input-pro"
-                  placeholder="Search by Patient Name or Medical ID..."
+                  placeholder="Search patient by name, email or ID..."
                   value={searchTerm}
                   onChange={(e) => {
                     setSearchTerm(e.target.value);
-                    setIsSearchOpen(true);
+                    setIsSearchOpen(e.target.value.length > 0);
+                    if (!e.target.value) handleSelectPatient("");
                   }}
                   onFocus={() => setIsSearchOpen(true)}
                 />
-                
+
                 {searchTerm && (
-                  <button 
+                  <button
                     className="clear-search-btn"
                     onClick={() => {
-                        setSearchTerm("");
-                        handleSelectPatient("");
-                        setIsSearchOpen(false);
+                      setSearchTerm("");
+                      handleSelectPatient("");
+                      setIsSearchOpen(false);
                     }}
+                    title="Clear"
                   >
                     <FaTimes />
                   </button>
                 )}
 
-                {/* Autocomplete Dropdown */}
-                {isSearchOpen && (
+                {/* Autocomplete Dropdown — split into My Patients / Others */}
+                {isSearchOpen && (myFilteredPatients.length > 0 || otherFilteredPatients.length > 0) && (
                   <div className="search-results-dropdown">
-                    {filteredPatients.length > 0 ? (
-                      filteredPatients.map((p, idx) => (
-                        <div 
-                          key={idx} 
-                          className={`result-item ${selectedPatient === (p.name || p.patient_name) ? 'active' : ''}`}
-                          onClick={() => onSelectItem(p.name || p.patient_name)}
-                        >
-                          <div className="result-avatar">
-                            {(p.name || p.patient_name || "?")[0].toUpperCase()}
-                          </div>
-                          <div className="result-info">
-                            <span className="result-name">{p.name || p.patient_name}</span>
-                            <span className="result-email">{p.email || "No email available"}</span>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="no-results">
-                        🚫 No patients found matching "{searchTerm}"
-                      </div>
+                    {/* ── My Patients ── */}
+                    {myFilteredPatients.length > 0 && (
+                      <>
+                        <div className="search-group-label search-group-mine">📋 My Patients</div>
+                        {myFilteredPatients.map((p, idx) => {
+                          const displayName  = p.patientName || p.name || "Unknown";
+                          const displayEmail = p.patient_email || p.email || "—";
+                          const isActive     = selectedPatient === displayName;
+                          return (
+                            <div
+                              key={p.id || idx}
+                              className={`result-item result-mine ${isActive ? "active" : ""}`}
+                              onClick={() => onSelectItem(p)}
+                            >
+                              <div className="result-avatar result-avatar-mine">{displayName[0].toUpperCase()}</div>
+                              <div className="result-info">
+                                <span className="result-name">{displayName}</span>
+                                <span className="result-email">{displayEmail}</span>
+                              </div>
+                              {p.id && <span className="result-id result-id-mine">My Patient</span>}
+                            </div>
+                          );
+                        })}
+                      </>
+                    )}
+
+                    {/* ── Other Patients ── */}
+                    {otherFilteredPatients.length > 0 && (
+                      <>
+                        <div className="search-group-label search-group-others">🔒 Other Patients</div>
+                        {otherFilteredPatients.map((p, idx) => {
+                          const displayName  = p.patientName || p.name || "Unknown";
+                          const displayEmail = p.patient_email || p.email || "—";
+                          const isActive     = selectedPatient === displayName;
+                          return (
+                            <div
+                              key={p.id || idx}
+                              className={`result-item result-other ${isActive ? "active" : ""}`}
+                              onClick={() => onSelectItem(p)}
+                            >
+                              <div className="result-avatar result-avatar-other">{displayName[0].toUpperCase()}</div>
+                              <div className="result-info">
+                                <span className="result-name">{displayName}</span>
+                                <span className="result-email">{displayEmail}</span>
+                              </div>
+                              {p.id && <span className="result-id">ID #{p.id}</span>}
+                            </div>
+                          );
+                        })}
+                      </>
                     )}
                   </div>
                 )}
-              </div>
 
-              {selectedPatient && (
-                <button
-                  className="btn-pro btn-pro-indigo"
-                  onClick={() => setActiveTab("patients")}
-                  title="Edit Patient Details"
-                >
-                  <FaUserMd /> Edit Record
-                </button>
-              )}
+                {/* No results message */}
+                {isSearchOpen && searchTerm && myFilteredPatients.length === 0 && otherFilteredPatients.length === 0 && (
+                  <div className="search-results-dropdown">
+                    <div className="no-results">🚫 No patients found for &quot;{searchTerm}&quot;</div>
+                  </div>
+                )}
+              </div>
             </div>
+
+            {/* Selected Patient Card — shown below search when a patient is picked */}
+            {selectedPatient && (
+              <div className="selected-patient-card">
+                <div className="spc-left">
+                  <div className="spc-avatar">
+                    {selectedPatient[0].toUpperCase()}
+                  </div>
+                  <div className="spc-info">
+                    <span className="spc-name">{selectedPatient}</span>
+                    <span className="spc-sub">
+                      {selectedPatientData ? (
+                        <>
+                          {selectedPatientData.age ? `${selectedPatientData.age} yrs` : ""}
+                          {selectedPatientData.age && selectedPatientData.gender ? " · " : ""}
+                          {selectedPatientData.gender || ""}
+                          {(selectedPatientData.age || selectedPatientData.gender) && selectedPatientData.diagnosis ? " · " : ""}
+                          {selectedPatientData.diagnosis || ""}
+                        </>
+                      ) : (
+                        "Loading patient info…"
+                      )}
+                    </span>
+                    {selectedPatientData?.id && (
+                      <span className="spc-id">ID #{selectedPatientData.id}</span>
+                    )}
+                  </div>
+                </div>
+                <button
+                  className="spc-clear"
+                  onClick={() => { handleSelectPatient(""); setSearchTerm(""); }}
+                  title="Deselect patient"
+                >
+                  <FaTimes />
+                </button>
+              </div>
+            )}
           </section>
         </div>
 
@@ -320,105 +405,140 @@ const DoctorHomeTab = ({
         <div className="access-panel">
         <section className="ehr-section">
           <h2>🔐 Request Access</h2>
+          {!isInsideNetwork && (
+            <div className="access-network-notice">
+              ⚠️ <strong>External Network:</strong> Only Break-Glass access is available outside hospital Wi-Fi.
+            </div>
+          )}
           <div className="ehr-access-grid">
-            <div className="ehr-access-card green">
+
+            {/* Normal — in-network only */}
+            <div className={`ehr-access-card green ${!isInsideNetwork ? "disabled-card" : ""}`}>
               <div className="card-icon">🏥</div>
-              <h3>Normal</h3>
-              <p>Full access for routine care and daily rounds. Available only within hospital Wi-Fi.</p>
+              <h3>Normal Access</h3>
+              <p>Routine care access. Available <strong>only within hospital Wi-Fi</strong>. No justification required.</p>
               <button
                 className="btn btn-green btn-block"
                 onClick={() => handleAccessRequest("normal")}
-                disabled={loading.access || !selectedPatient}
+                disabled={loading.access || !selectedPatient || !isInsideNetwork}
               >
                 {loading.access ? "Processing..." : "Request Access"}
               </button>
+              {!isInsideNetwork && <small className="card-warning">🏥 In-network only</small>}
             </div>
 
-            <div
-              className={`ehr-access-card blue ${
-                isInsideNetwork ? "disabled-card" : ""
-              }`}
-            >
+            {/* Restricted — always justification modal */}
+            <div className="ehr-access-card blue">
               <div className="card-icon">🔒</div>
-              <h3>Restricted</h3>
-              <p>
-                 Limited read-only access for remote viewing. Sensitive details are masked.
-                {isInsideNetwork && <small className="card-warning"> (Remote only)</small>}
-              </p>
+              <h3>Unrestricted Access</h3>
+              <p>Access beyond normal scope. Requires written justification. All access is audited.</p>
               <button
                 className="btn btn-blue btn-block"
-                onClick={() => handleAccessRequest("restricted")}
-                disabled={isInsideNetwork || loading.access || !selectedPatient}
+                onClick={() => { setRestrictedReason(""); setShowRestrictedModal(true); }}
+                disabled={loading.access || !selectedPatient}
               >
-                Request Access
+                Request with Justification
               </button>
             </div>
 
+            {/* Emergency — existing break-glass modal */}
             <div className="ehr-access-card red">
               <div className="card-icon">🚨</div>
-              <h3>Emergency</h3>
-              <p>Immediate "Break-Glass" access for critical situations. All actions are strictly audited.</p>
+              <h3>Break-Glass</h3>
+              <p>Emergency override for critical situations. Mandatory justification. Strictly audited.</p>
               <button
                 className="btn btn-emergency btn-block"
-                onClick={() => setShowEmergencyModal(true)}
+                onClick={() => { setEmergencyReason(""); setShowEmergencyModal(true); }}
                 disabled={loading.access || !selectedPatient}
               >
                 Break Glass
               </button>
             </div>
+
           </div>
         </section>
         </div>
         
       </div> {/* End dashboard-main-content */}
 
-      {/* Emergency Justification Modal */}
+      {/* ── Emergency (Break-Glass) Justification Modal ── */}
       {showEmergencyModal && (
         <div className="modal-overlay">
           <div className="modal-content emergency-modal">
             <div className="modal-header emergency-header">
-              <h2>🚨 Emergency Access Confirmation</h2>
+              <h2>🚨 Break-Glass Emergency Access</h2>
               <button className="close-btn" onClick={() => setShowEmergencyModal(false)}>×</button>
             </div>
             <div className="modal-body">
               <p className="warning-text">
-                 You are about to break the glass for patient <strong>{selectedPatient}</strong>. 
-                 This action will be logged and audited by the administration.
+                You are about to break the glass for <strong>{selectedPatient}</strong>.
+                This action is <strong>permanently logged</strong> and reviewed by administration.
               </p>
-              <label>Mandatory Justification:</label>
-              <textarea 
-                  className="emergency-reason-input"
-                  placeholder="Clinical reason for emergency access..."
-                  value={emergencyReason}
-                  onChange={(e) => setEmergencyReason(e.target.value)}
-                  autoFocus
+              <label>Mandatory Clinical Justification:</label>
+              <textarea
+                className="emergency-reason-input"
+                placeholder="Describe the emergency and clinical reason for access..."
+                value={emergencyReason}
+                onChange={(e) => setEmergencyReason(e.target.value)}
+                autoFocus
               />
-              <p style={{
-                  color: checkStatus.color, 
-                  fontSize: '0.85rem', 
-                  fontWeight: '600', 
-                  marginTop: '0.25rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  minHeight: '1.25rem'
-              }}>
-                 {checkStatus.message}
+              <p style={{ color: checkStatus.color, fontSize: "0.85rem", fontWeight: "600", marginTop: "0.25rem", minHeight: "1.25rem" }}>
+                {checkStatus.message}
               </p>
             </div>
             <div className="modal-footer">
-               <button className="btn btn-gray" onClick={() => setShowEmergencyModal(false)}>Cancel</button>
-               <button 
-                  className="btn btn-emergency"
-                  onClick={() => {
-                      handleAccessRequest("emergency", emergencyReason);
-                      setShowEmergencyModal(false);
-                      setEmergencyReason("");
-                  }}
-                  disabled={!emergencyReason.trim()}
-               >
-                 Confirm & Break Glass
-               </button>
+              <button className="btn btn-gray" onClick={() => setShowEmergencyModal(false)}>Cancel</button>
+              <button
+                className="btn btn-emergency"
+                onClick={() => {
+                  handleAccessRequest("emergency", emergencyReason);
+                  setShowEmergencyModal(false);
+                  setEmergencyReason("");
+                }}
+                disabled={!emergencyReason.trim()}
+              >
+                🚨 Confirm & Break Glass
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Restricted / Unrestricted Justification Modal ── */}
+      {showRestrictedModal && (
+        <div className="modal-overlay">
+          <div className="modal-content emergency-modal">
+            <div className="modal-header" style={{ background: "linear-gradient(135deg,#1d4ed8,#3b82f6)", color: "white", padding: "1rem 1.5rem", display: "flex", justifyContent: "space-between", alignItems: "center", borderRadius: "12px 12px 0 0" }}>
+              <h2 style={{ margin: 0, fontSize: "1.1rem" }}>🔒 Unrestricted Access — Justification Required</h2>
+              <button className="close-btn" onClick={() => setShowRestrictedModal(false)}>×</button>
+            </div>
+            <div className="modal-body">
+              <p className="warning-text" style={{ borderColor: "#3b82f6", background: "#eff6ff", color: "#1d4ed8" }}>
+                You are requesting <strong>unrestricted access</strong> to records of <strong>{selectedPatient}</strong>.
+                A written justification is mandatory and will be retained in the audit log.
+              </p>
+              <label>Justification <span style={{ color: "#ef4444" }}>*</span></label>
+              <textarea
+                className="emergency-reason-input"
+                placeholder="State the clinical reason why unrestricted access is needed..."
+                value={restrictedReason}
+                onChange={(e) => setRestrictedReason(e.target.value)}
+                autoFocus
+              />
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-gray" onClick={() => setShowRestrictedModal(false)}>Cancel</button>
+              <button
+                className="btn btn-blue"
+                onClick={() => {
+                  handleAccessRequest("restricted", restrictedReason);
+                  setShowRestrictedModal(false);
+                  setRestrictedReason("");
+                }}
+                disabled={!restrictedReason.trim()}
+              >
+                🔒 Confirm & Request Access
+              </button>
             </div>
           </div>
         </div>
