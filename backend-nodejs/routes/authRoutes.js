@@ -2,7 +2,7 @@
 const express = require("express");
 const router = express.Router();
 const { strictLimiter, otpLimiter } = require("../limiter");
-const { sendOtpEmail, generateOTP, isValidEmail, generateToken } = require("../utils");
+const { sendOtpEmail, sendWelcomeEmail, generateOTP, isValidEmail, generateToken } = require("../utils");
 const { run, get } = require("../database");
 const config = require("../config");
 
@@ -145,6 +145,10 @@ router.post("/verify_otp", async (req, res) => {
            VALUES (?, ?, ?, datetime('now'), datetime('now'), datetime('now'))`,
           [email, session.name, session.role]
         );
+
+        // 📧 Send welcome email to new users
+        sendWelcomeEmail(email, session.name, session.role)
+          .catch(err => console.error("Welcome email error:", err.message));
       } else {
         // Update last login
         await run(

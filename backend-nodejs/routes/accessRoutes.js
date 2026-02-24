@@ -3,6 +3,13 @@ const express = require("express");
 const router = express.Router();
 const { verifyFirebaseToken } = require("../middleware");
 const { run, get, all } = require("../database");
+const config = require("../config");
+const {
+  sendAccessApprovedEmail,
+  sendAccessDeniedEmail,
+  sendEmergencyAccessAlert,
+  sendNewAccessRequestNotification
+} = require("../utils");
 
 /**
  * Request access to patient record
@@ -24,7 +31,16 @@ router.post("/request", verifyFirebaseToken, async (req, res) => {
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [patientId, requesterId, accessType, reason || "", "pending", createdAt, expiresAt]
     );
-    
+
+    // 📧 Notify admin about new access request
+    sendNewAccessRequestNotification(
+      config.ADMIN_EMAIL,
+      req.user?.name || requesterId,
+      requesterId,
+      patientId,
+      reason
+    ).catch(err => console.error("Email notification error:", err.message));
+
     console.log("Access request created");
     res.json({
       success: true,
@@ -65,7 +81,18 @@ router.put("/:requestId/approve", verifyFirebaseToken, async (req, res) => {
       `UPDATE access_requests SET status = ?, approvedBy = ?, approvedAt = ? WHERE id = ?`,
       ["approved", req.user.email, new Date().toISOString(), requestId]
     );
-    
+
+    // 📧 Notify requester of approval
+    if (accessRequest.requesterId) {
+      sendAccessApprovedEmail(
+        accessRequest.requesterId,
+        accessRequest.name || accessRequest.requesterId,
+        accessRequest.patientId,
+        accessRequest.accessType,
+        req.user.email
+      ).catch(err => console.error("Email notification error:", err.message));
+    }
+
     console.log("Access request approved:", requestId);
     res.json({ success: true, message: "Access request approved" });
   } catch (error) {
@@ -82,11 +109,28 @@ router.put("/:requestId/deny", verifyFirebaseToken, async (req, res) => {
     const { requestId } = req.params;
     const { reason } = req.body;
     
+    // Get request details before updating (to send email)
+    const denyRequest = await get(
+      "SELECT * FROM access_requests WHERE id = ?",
+      [requestId]
+    );
+
     await run(
       `UPDATE access_requests SET status = ?, deniedBy = ?, deniedAt = ?, denialReason = ? WHERE id = ?`,
       ["denied", req.user.email, new Date().toISOString(), reason || "", requestId]
     );
-    
+
+    // 📧 Notify requester of denial
+    if (denyRequest && denyRequest.requesterId) {
+      sendAccessDeniedEmail(
+        denyRequest.requesterId,
+        denyRequest.name || denyRequest.requesterId,
+        denyRequest.patientId,
+        reason,
+        req.user.email
+      ).catch(err => console.error("Email notification error:", err.message));
+    }
+
     console.log("Access request denied:", requestId);
     res.json({ success: true, message: "Access request denied" });
   } catch (error) {
@@ -115,7 +159,15 @@ router.post("/emergency", verifyFirebaseToken, async (req, res) => {
        VALUES (?, ?, ?, ?, ?)`,
       [patientId, grantedBy, reason, createdAt, expiresAt]
     );
-    
+
+    // 📧 Alert admin about emergency access
+    sendEmergencyAccessAlert(
+      config.ADMIN_EMAIL,
+      grantedBy,
+      patientId,
+      reason
+    ).catch(err => console.error("Emergency email error:", err.message));
+
     console.log("Emergency access granted");
     res.json({
       success: true,
