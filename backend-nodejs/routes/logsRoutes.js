@@ -11,24 +11,15 @@ router.get("/", verifyFirebaseToken, async (req, res) => {
   try {
     const { limit = 100, offset = 0 } = req.query;
     
-    
-    const snapshot = await db.collection("access_logs")
-      .orderBy("timestamp", "desc")
-      .limit(parseInt(limit))
-      .get();
-    
-    const logs = [];
-    snapshot.forEach(doc => {
-      logs.push({
-        id: doc.id,
-        ...doc.data()
-      });
-    });
+    const logs = await all(
+      "SELECT * FROM access_logs ORDER BY timestamp DESC LIMIT ? OFFSET ?",
+      [parseInt(limit), parseInt(offset)]
+    );
     
     res.json({ success: true, logs, count: logs.length });
   } catch (error) {
-    console.error("âŒ Error fetching logs:", error.message);
-    res.status(500).json({ error: "âŒ Failed to fetch logs" });
+    console.error("Error fetching logs:", error.message);
+    res.status(500).json({ error: "Failed to fetch logs" });
   }
 });
 
@@ -40,25 +31,15 @@ router.get("/user/:userId", verifyFirebaseToken, async (req, res) => {
     const { userId } = req.params;
     const { limit = 50 } = req.query;
     
-    
-    const snapshot = await db.collection("access_logs")
-      .where("userId", "==", userId)
-      .orderBy("timestamp", "desc")
-      .limit(parseInt(limit))
-      .get();
-    
-    const logs = [];
-    snapshot.forEach(doc => {
-      logs.push({
-        id: doc.id,
-        ...doc.data()
-      });
-    });
+    const logs = await all(
+      "SELECT * FROM access_logs WHERE userId = ? ORDER BY timestamp DESC LIMIT ?",
+      [userId, parseInt(limit)]
+    );
     
     res.json({ success: true, logs, count: logs.length });
   } catch (error) {
-    console.error("âŒ Error fetching user logs:", error.message);
-    res.status(500).json({ error: "âŒ Failed to fetch user logs" });
+    console.error("Error fetching user logs:", error.message);
+    res.status(500).json({ error: "Failed to fetch user logs" });
   }
 });
 
@@ -70,25 +51,15 @@ router.get("/patient/:patientId", verifyFirebaseToken, async (req, res) => {
     const { patientId } = req.params;
     const { limit = 50 } = req.query;
     
-    
-    const snapshot = await db.collection("access_logs")
-      .where("patientId", "==", patientId)
-      .orderBy("timestamp", "desc")
-      .limit(parseInt(limit))
-      .get();
-    
-    const logs = [];
-    snapshot.forEach(doc => {
-      logs.push({
-        id: doc.id,
-        ...doc.data()
-      });
-    });
+    const logs = await all(
+      "SELECT * FROM access_logs WHERE patientId = ? ORDER BY timestamp DESC LIMIT ?",
+      [patientId, parseInt(limit)]
+    );
     
     res.json({ success: true, logs, count: logs.length });
   } catch (error) {
-    console.error("âŒ Error fetching patient logs:", error.message);
-    res.status(500).json({ error: "âŒ Failed to fetch patient logs" });
+    console.error("Error fetching patient logs:", error.message);
+    res.status(500).json({ error: "Failed to fetch patient logs" });
   }
 });
 
@@ -100,32 +71,33 @@ router.post("/", verifyFirebaseToken, async (req, res) => {
     const { userId, action, patientId, details = {} } = req.body;
     
     if (!userId || !action) {
-      return res.status(400).json({ error: "âŒ Missing required fields" });
+      return res.status(400).json({ error: "Missing required fields" });
     }
     
-    
-    const logRef = db.collection("access_logs").doc();
     const logData = {
       userId,
       action,
       patientId: patientId || null,
-      details,
-      timestamp: new Date(),
+      details: typeof details === 'string' ? details : JSON.stringify(details),
+      timestamp: new Date().toISOString(),
       ip: req.ip || "unknown"
     };
     
-    await logRef.set(logData);
+    await run(
+      `INSERT INTO access_logs (userId, action, patientId, details, timestamp, ip)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [logData.userId, logData.action, logData.patientId, logData.details, logData.timestamp, logData.ip]
+    );
     
-    console.log(`âœ… Access log created: ${logRef.id}`);
+    console.log("Access log created");
     res.json({
       success: true,
-      message: "âœ… Log recorded",
-      logId: logRef.id,
+      message: "Log recorded",
       log: logData
     });
   } catch (error) {
-    console.error("âŒ Error creating access log:", error.message);
-    res.status(500).json({ error: "âŒ Failed to create access log" });
+    console.error("Error creating access log:", error.message);
+    res.status(500).json({ error: "Failed to create access log" });
   }
 });
 
@@ -139,28 +111,20 @@ router.get("/date-range/:startDate/:endDate", verifyFirebaseToken, async (req, r
     const end = new Date(endDate);
     
     if (isNaN(start) || isNaN(end)) {
-      return res.status(400).json({ error: "âŒ Invalid date format" });
+      return res.status(400).json({ error: "Invalid date format" });
     }
     
-    
-    const snapshot = await db.collection("access_logs")
-      .where("timestamp", ">=", start)
-      .where("timestamp", "<=", end)
-      .orderBy("timestamp", "desc")
-      .get();
-    
-    const logs = [];
-    snapshot.forEach(doc => {
-      logs.push({
-        id: doc.id,
-        ...doc.data()
-      });
-    });
+    const logs = await all(
+      `SELECT * FROM access_logs 
+       WHERE timestamp >= ? AND timestamp <= ? 
+       ORDER BY timestamp DESC`,
+      [start.toISOString(), end.toISOString()]
+    );
     
     res.json({ success: true, logs, count: logs.length });
   } catch (error) {
-    console.error("âŒ Error fetching logs for date range:", error.message);
-    res.status(500).json({ error: "âŒ Failed to fetch logs" });
+    console.error("Error fetching logs for date range:", error.message);
+    res.status(500).json({ error: "Failed to fetch logs" });
   }
 });
 

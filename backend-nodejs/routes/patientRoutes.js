@@ -12,34 +12,44 @@ router.post("/", async (req, res) => {
     const { patientName, age, gender, medicalHistory, emergencyContact } = req.body;
     
     if (!patientName || !age || !gender) {
-      return res.status(400).json({ error: "âŒ Missing required fields" });
+      return res.status(400).json({ error: "Missing required fields" });
     }
     
+    const createdAt = new Date().toISOString();
+    const updatedAt = createdAt;
     
-    const patientRef = db.collection("patients").doc();
-    const patientData = {
-      patientName,
-      age,
-      gender,
-      medicalHistory: medicalHistory || [],
-      emergencyContact,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      createdBy: req.user?.email || "system"
-    };
+    await run(
+      `INSERT INTO patients (patientName, age, gender, medicalHistory, emergencyContact, createdAt, updatedAt, createdBy)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        patientName,
+        age,
+        gender,
+        medicalHistory ? JSON.stringify(medicalHistory) : "[]",
+        emergencyContact ? JSON.stringify(emergencyContact) : "{}",
+        createdAt,
+        updatedAt,
+        req.user?.email || "system"
+      ]
+    );
     
-    await patientRef.set(patientData);
-    
-    console.log(`âœ… Patient record created: ${patientRef.id}`);
+    console.log("Patient record created");
     res.json({
       success: true,
-      message: "âœ… Patient record created",
-      patientId: patientRef.id,
-      patient: patientData
+      message: "Patient record created",
+      patient: {
+        patientName,
+        age,
+        gender,
+        medicalHistory: medicalHistory || [],
+        emergencyContact: emergencyContact || {},
+        createdAt,
+        updatedAt
+      }
     });
   } catch (error) {
-    console.error("âŒ Error creating patient record:", error.message);
-    res.status(500).json({ error: "âŒ Failed to create patient record" });
+    console.error("Error creating patient record:", error.message);
+    res.status(500).json({ error: "Failed to create patient record" });
   }
 });
 
@@ -51,34 +61,44 @@ router.post("/add_patient", async (req, res) => {
     const { patientName, age, gender, medicalHistory, emergencyContact } = req.body;
     
     if (!patientName || !age || !gender) {
-      return res.status(400).json({ error: "âŒ Missing required fields: patientName, age, gender" });
+      return res.status(400).json({ error: "Missing required fields: patientName, age, gender" });
     }
     
+    const createdAt = new Date().toISOString();
+    const updatedAt = createdAt;
     
-    const patientRef = db.collection("patients").doc();
-    const patientData = {
-      patientName,
-      age,
-      gender,
-      medicalHistory: medicalHistory || [],
-      emergencyContact: emergencyContact || {},
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      createdBy: req.user?.email || "system"
-    };
+    await run(
+      `INSERT INTO patients (patientName, age, gender, medicalHistory, emergencyContact, createdAt, updatedAt, createdBy)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        patientName,
+        age,
+        gender,
+        medicalHistory ? JSON.stringify(medicalHistory) : "[]",
+        emergencyContact ? JSON.stringify(emergencyContact) : "{}",
+        createdAt,
+        updatedAt,
+        req.user?.email || "system"
+      ]
+    );
     
-    await patientRef.set(patientData);
-    
-    console.log(`âœ… Patient record created: ${patientRef.id}`);
+    console.log("Patient record created");
     res.json({
       success: true,
-      message: "âœ… Patient record created",
-      patientId: patientRef.id,
-      patient: { id: patientRef.id, ...patientData }
+      message: "Patient record created",
+      patient: {
+        patientName,
+        age,
+        gender,
+        medicalHistory: medicalHistory || [],
+        emergencyContact: emergencyContact || {},
+        createdAt,
+        updatedAt
+      }
     });
   } catch (error) {
-    console.error("âŒ Error creating patient record:", error.message);
-    res.status(500).json({ error: "âŒ Failed to create patient record" });
+    console.error("Error creating patient record:", error.message);
+    res.status(500).json({ error: "Failed to create patient record" });
   }
 });
 
@@ -89,17 +109,19 @@ router.get("/:patientId", verifyFirebaseToken, async (req, res) => {
   try {
     const { patientId } = req.params;
     
+    const patient = await get(
+      "SELECT * FROM patients WHERE id = ?",
+      [patientId]
+    );
     
-    const patientDoc = await db.collection("patients").doc(patientId).get();
-    
-    if (!patientDoc.exists) {
-      return res.status(404).json({ error: "âŒ Patient not found" });
+    if (!patient) {
+      return res.status(404).json({ error: "Patient not found" });
     }
     
-    res.json({ success: true, patient: { id: patientDoc.id, ...patientDoc.data() } });
+    res.json({ success: true, patient });
   } catch (error) {
-    console.error("âŒ Error fetching patient record:", error.message);
-    res.status(500).json({ error: "âŒ Failed to fetch patient record" });
+    console.error("Error fetching patient record:", error.message);
+    res.status(500).json({ error: "Failed to fetch patient record" });
   }
 });
 
@@ -109,19 +131,29 @@ router.get("/:patientId", verifyFirebaseToken, async (req, res) => {
 router.put("/:patientId", verifyFirebaseToken, async (req, res) => {
   try {
     const { patientId } = req.params;
-    const updateData = {
-      ...req.body,
-      updatedAt: new Date()
-    };
+    const updateData = req.body;
+    const updatedAt = new Date().toISOString();
     
+    // Build dynamic UPDATE query
+    const fields = Object.keys(updateData).map(key => `${key} = ?`).join(", ");
+    const values = Object.values(updateData);
+    values.push(updatedAt);
+    values.push(patientId);
     
-    await db.collection("patients").doc(patientId).update(updateData);
+    await run(
+      `UPDATE patients SET ${fields}, updatedAt = ? WHERE id = ?`,
+      values
+    );
     
-    console.log(`âœ… Patient record updated: ${patientId}`);
-    res.json({ success: true, message: "âœ… Patient record updated", patient: updateData });
+    console.log("Patient record updated:", patientId);
+    res.json({ 
+      success: true, 
+      message: "Patient record updated", 
+      patient: { id: patientId, ...updateData, updatedAt } 
+    });
   } catch (error) {
-    console.error("âŒ Error updating patient record:", error.message);
-    res.status(500).json({ error: "âŒ Failed to update patient record" });
+    console.error("Error updating patient record:", error.message);
+    res.status(500).json({ error: "Failed to update patient record" });
   }
 });
 
@@ -133,26 +165,35 @@ router.post("/update_patient", async (req, res) => {
     const patientId = req.body.patientId || req.body.id;
     
     if (!patientId) {
-      return res.status(400).json({ error: "âŒ Missing patientId" });
+      return res.status(400).json({ error: "Missing patientId" });
     }
     
-    
-    const updateData = {
-      ...req.body,
-      updatedAt: new Date()
-    };
-    
-    // Remove id/patientId from update data if present
+    const updateData = { ...req.body };
     delete updateData.patientId;
     delete updateData.id;
     
-    await db.collection("patients").doc(patientId).update(updateData);
+    const updatedAt = new Date().toISOString();
     
-    console.log(`âœ… Patient record updated: ${patientId}`);
-    res.json({ success: true, message: "âœ… Patient record updated", patient: { id: patientId, ...updateData } });
+    // Build dynamic UPDATE query
+    const fields = Object.keys(updateData).map(key => `${key} = ?`).join(", ");
+    const values = Object.values(updateData);
+    values.push(updatedAt);
+    values.push(patientId);
+    
+    await run(
+      `UPDATE patients SET ${fields}, updatedAt = ? WHERE id = ?`,
+      values
+    );
+    
+    console.log("Patient record updated:", patientId);
+    res.json({ 
+      success: true, 
+      message: "Patient record updated", 
+      patient: { id: patientId, ...updateData, updatedAt } 
+    });
   } catch (error) {
-    console.error("âŒ Error updating patient record:", error.message);
-    res.status(500).json({ error: "âŒ Failed to update patient record" });
+    console.error("Error updating patient record:", error.message);
+    res.status(500).json({ error: "Failed to update patient record" });
   }
 });
 
@@ -161,21 +202,11 @@ router.post("/update_patient", async (req, res) => {
  */
 router.get("/", verifyFirebaseToken, async (req, res) => {
   try {
-    
-    const snapshot = await db.collection("patients").get();
-    const patients = [];
-    
-    snapshot.forEach(doc => {
-      patients.push({
-        id: doc.id,
-        ...doc.data()
-      });
-    });
-    
+    const patients = await all("SELECT * FROM patients");
     res.json({ success: true, patients, count: patients.length });
   } catch (error) {
-    console.error("âŒ Error fetching patients:", error.message);
-    res.status(500).json({ error: "âŒ Failed to fetch patients" });
+    console.error("Error fetching patients:", error.message);
+    res.status(500).json({ error: "Failed to fetch patients" });
   }
 });
 
@@ -186,14 +217,16 @@ router.delete("/:patientId", verifyFirebaseToken, async (req, res) => {
   try {
     const { patientId } = req.params;
     
+    await run(
+      "DELETE FROM patients WHERE id = ?",
+      [patientId]
+    );
     
-    await db.collection("patients").doc(patientId).delete();
-    
-    console.log(`âœ… Patient record deleted: ${patientId}`);
-    res.json({ success: true, message: "âœ… Patient record deleted" });
+    console.log("Patient record deleted:", patientId);
+    res.json({ success: true, message: "Patient record deleted" });
   } catch (error) {
-    console.error("âŒ Error deleting patient record:", error.message);
-    res.status(500).json({ error: "âŒ Failed to delete patient record" });
+    console.error("Error deleting patient record:", error.message);
+    res.status(500).json({ error: "Failed to delete patient record" });
   }
 });
 

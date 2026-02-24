@@ -10,8 +10,8 @@ const { calculateTrustScore, getTrustLevel } = require("../trustLogic");
  */
 router.get("/health", (req, res) => {
   res.json({
-    status: "âœ… Backend is running",
-    database: "✅ SQLite connected",
+    status: "OK - Backend is running",
+    database: "SQLite connected",
     environment: process.env.NODE_ENV || "development",
     timestamp: new Date().toISOString()
   });
@@ -29,8 +29,8 @@ router.get("/ip_check", (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error("âŒ IP check error:", error.message);
-    res.status(500).json({ error: "âŒ Failed to get IP" });
+    console.error("IP check error:", error.message);
+    res.status(500).json({ error: "Failed to get IP" });
   }
 });
 
@@ -39,25 +39,24 @@ router.get("/ip_check", (req, res) => {
  */
 router.get("/stats", async (req, res) => {
   try {
-    
-    const usersSnapshot = await db.collection("users").get();
-    const patientsSnapshot = await db.collection("patients").get();
-    const accessLogsSnapshot = await db.collection("access_logs").get();
-    const accessRequestsSnapshot = await db.collection("access_requests").get();
+    const userCount = await get("SELECT COUNT(*) as count FROM users");
+    const patientCount = await get("SELECT COUNT(*) as count FROM patients");
+    const accessLogCount = await get("SELECT COUNT(*) as count FROM access_logs");
+    const accessRequestCount = await get("SELECT COUNT(*) as count FROM access_requests");
     
     res.json({
       success: true,
       stats: {
-        totalUsers: usersSnapshot.size,
-        totalPatients: patientsSnapshot.size,
-        totalAccessLogs: accessLogsSnapshot.size,
-        totalAccessRequests: accessRequestsSnapshot.size,
+        totalUsers: userCount.count,
+        totalPatients: patientCount.count,
+        totalAccessLogs: accessLogCount.count,
+        totalAccessRequests: accessRequestCount.count,
         timestamp: new Date().toISOString()
       }
     });
   } catch (error) {
-    console.error("âŒ Error fetching statistics:", error.message);
-    res.status(500).json({ error: "âŒ Failed to fetch statistics" });
+    console.error("Error fetching statistics:", error.message);
+    res.status(500).json({ error: "Failed to fetch statistics" });
   }
 });
 
@@ -68,19 +67,16 @@ router.get("/trust_score/:name", async (req, res) => {
   try {
     const { name } = req.params;
     
+    const user = await get(
+      "SELECT * FROM users WHERE name = ? LIMIT 1",
+      [name]
+    );
     
-    // Query user by name
-    const userSnapshot = await db.collection("users")
-      .where("name", "==", name)
-      .limit(1)
-      .get();
-    
-    if (userSnapshot.empty) {
-      return res.status(404).json({ error: "âŒ User not found" });
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
     }
     
-    const user = userSnapshot.docs[0].data();
-    const trustScore = user.trustScore || 50; // Default trust score
+    const trustScore = user.trustScore || 50;
     const trustLevel = getTrustLevel(trustScore);
     
     res.json({
@@ -94,8 +90,8 @@ router.get("/trust_score/:name", async (req, res) => {
       }
     });
   } catch (error) {
-    console.error("âŒ Error fetching trust score:", error.message);
-    res.status(500).json({ error: "âŒ Failed to fetch trust score" });
+    console.error("Error fetching trust score:", error.message);
+    res.status(500).json({ error: "Failed to fetch trust score" });
   }
 });
 
@@ -104,21 +100,11 @@ router.get("/trust_score/:name", async (req, res) => {
  */
 router.get("/get_all_users", async (req, res) => {
   try {
-    
-    const snapshot = await db.collection("users").get();
-    const users = [];
-    
-    snapshot.forEach(doc => {
-      users.push({
-        id: doc.id,
-        ...doc.data()
-      });
-    });
-    
+    const users = await all("SELECT * FROM users");
     res.json({ success: true, users, count: users.length });
   } catch (error) {
-    console.error("âŒ Error fetching users:", error.message);
-    res.status(500).json({ error: "âŒ Failed to fetch users" });
+    console.error("Error fetching users:", error.message);
+    res.status(500).json({ error: "Failed to fetch users" });
   }
 });
 
@@ -127,21 +113,11 @@ router.get("/get_all_users", async (req, res) => {
  */
 router.get("/all_patients", async (req, res) => {
   try {
-    
-    const snapshot = await db.collection("patients").get();
-    const patients = [];
-    
-    snapshot.forEach(doc => {
-      patients.push({
-        id: doc.id,
-        ...doc.data()
-      });
-    });
-    
+    const patients = await all("SELECT * FROM patients");
     res.json({ success: true, patients, count: patients.length });
   } catch (error) {
-    console.error("âŒ Error fetching patients:", error.message);
-    res.status(500).json({ error: "âŒ Failed to fetch patients" });
+    console.error("Error fetching patients:", error.message);
+    res.status(500).json({ error: "Failed to fetch patients" });
   }
 });
 
@@ -150,24 +126,13 @@ router.get("/all_patients", async (req, res) => {
  */
 router.get("/access_logs/admin", async (req, res) => {
   try {
-    
-    const snapshot = await db.collection("access_logs")
-      .orderBy("timestamp", "desc")
-      .limit(100)
-      .get();
-    
-    const logs = [];
-    snapshot.forEach(doc => {
-      logs.push({
-        id: doc.id,
-        ...doc.data()
-      });
-    });
-    
+    const logs = await all(
+      "SELECT * FROM access_logs ORDER BY timestamp DESC LIMIT 100"
+    );
     res.json({ success: true, logs, count: logs.length });
   } catch (error) {
-    console.error("âŒ Error fetching admin access logs:", error.message);
-    res.status(500).json({ error: "âŒ Failed to fetch access logs" });
+    console.error("Error fetching admin access logs:", error.message);
+    res.status(500).json({ error: "Failed to fetch access logs" });
   }
 });
 
@@ -176,25 +141,13 @@ router.get("/access_logs/admin", async (req, res) => {
  */
 router.get("/all_doctor_access_logs", async (req, res) => {
   try {
-    
-    const snapshot = await db.collection("access_logs")
-      .where("role", "==", "doctor")
-      .orderBy("timestamp", "desc")
-      .limit(100)
-      .get();
-    
-    const logs = [];
-    snapshot.forEach(doc => {
-      logs.push({
-        id: doc.id,
-        ...doc.data()
-      });
-    });
-    
+    const logs = await all(
+      "SELECT * FROM access_logs WHERE role = 'doctor' ORDER BY timestamp DESC LIMIT 100"
+    );
     res.json({ success: true, logs, count: logs.length });
   } catch (error) {
-    console.error("âŒ Error fetching doctor access logs:", error.message);
-    res.status(500).json({ error: "âŒ Failed to fetch doctor access logs" });
+    console.error("Error fetching doctor access logs:", error.message);
+    res.status(500).json({ error: "Failed to fetch doctor access logs" });
   }
 });
 
@@ -203,25 +156,13 @@ router.get("/all_doctor_access_logs", async (req, res) => {
  */
 router.get("/all_nurse_access_logs", async (req, res) => {
   try {
-    
-    const snapshot = await db.collection("access_logs")
-      .where("role", "==", "nurse")
-      .orderBy("timestamp", "desc")
-      .limit(100)
-      .get();
-    
-    const logs = [];
-    snapshot.forEach(doc => {
-      logs.push({
-        id: doc.id,
-        ...doc.data()
-      });
-    });
-    
+    const logs = await all(
+      "SELECT * FROM access_logs WHERE role = 'nurse' ORDER BY timestamp DESC LIMIT 100"
+    );
     res.json({ success: true, logs, count: logs.length });
   } catch (error) {
-    console.error("âŒ Error fetching nurse access logs:", error.message);
-    res.status(500).json({ error: "âŒ Failed to fetch nurse access logs" });
+    console.error("Error fetching nurse access logs:", error.message);
+    res.status(500).json({ error: "Failed to fetch nurse access logs" });
   }
 });
 
@@ -232,26 +173,15 @@ router.get("/nurse_access_logs/:name", async (req, res) => {
   try {
     const { name } = req.params;
     
-    
-    const snapshot = await db.collection("access_logs")
-      .where("name", "==", name)
-      .where("role", "==", "nurse")
-      .orderBy("timestamp", "desc")
-      .limit(50)
-      .get();
-    
-    const logs = [];
-    snapshot.forEach(doc => {
-      logs.push({
-        id: doc.id,
-        ...doc.data()
-      });
-    });
+    const logs = await all(
+      "SELECT * FROM access_logs WHERE name = ? AND role = 'nurse' ORDER BY timestamp DESC LIMIT 50",
+      [name]
+    );
     
     res.json({ success: true, logs, count: logs.length });
   } catch (error) {
-    console.error("âŒ Error fetching nurse access logs:", error.message);
-    res.status(500).json({ error: "âŒ Failed to fetch nurse access logs" });
+    console.error("Error fetching nurse access logs:", error.message);
+    res.status(500).json({ error: "Failed to fetch nurse access logs" });
   }
 });
 
@@ -263,11 +193,9 @@ router.post("/log_access", async (req, res) => {
     const { name, role, patientId, action, reason, ip } = req.body;
     
     if (!name || !role || !patientId) {
-      return res.status(400).json({ error: "âŒ Missing required fields" });
+      return res.status(400).json({ error: "Missing required fields" });
     }
     
-    
-    const logRef = db.collection("access_logs").doc();
     const logData = {
       name,
       role,
@@ -275,20 +203,23 @@ router.post("/log_access", async (req, res) => {
       action: action || "VIEWED",
       reason: reason || "",
       ip: ip || "unknown",
-      timestamp: new Date()
+      timestamp: new Date().toISOString()
     };
     
-    await logRef.set(logData);
+    await run(
+      `INSERT INTO access_logs (name, role, patientId, action, reason, ip, timestamp)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [logData.name, logData.role, logData.patientId, logData.action, logData.reason, logData.ip, logData.timestamp]
+    );
     
-    console.log(`âœ… Access log created: ${logRef.id}`);
+    console.log("Access log created");
     res.json({
       success: true,
-      message: "âœ… Access logged",
-      logId: logRef.id
+      message: "Access logged"
     });
   } catch (error) {
-    console.error("âŒ Error logging access:", error.message);
-    res.status(500).json({ error: "âŒ Failed to log access" });
+    console.error("Error logging access:", error.message);
+    res.status(500).json({ error: "Failed to log access" });
   }
 });
 
@@ -297,33 +228,15 @@ router.post("/log_access", async (req, res) => {
  */
 router.get("/dashboard", async (req, res) => {
   try {
-    
     // Get recent access logs
-    const recentLogs = await db.collection("access_logs")
-      .orderBy("timestamp", "desc")
-      .limit(10)
-      .get();
-    
-    const logs = [];
-    recentLogs.forEach(doc => {
-      logs.push({
-        id: doc.id,
-        ...doc.data()
-      });
-    });
+    const logs = await all(
+      "SELECT * FROM access_logs ORDER BY timestamp DESC LIMIT 10"
+    );
     
     // Get pending access requests
-    const pendingRequests = await db.collection("access_requests")
-      .where("status", "==", "pending")
-      .get();
-    
-    const requests = [];
-    pendingRequests.forEach(doc => {
-      requests.push({
-        id: doc.id,
-        ...doc.data()
-      });
-    });
+    const requests = await all(
+      "SELECT * FROM access_requests WHERE status = 'pending'"
+    );
     
     res.json({
       success: true,
@@ -334,8 +247,8 @@ router.get("/dashboard", async (req, res) => {
       }
     });
   } catch (error) {
-    console.error("âŒ Error fetching dashboard data:", error.message);
-    res.status(500).json({ error: "âŒ Failed to fetch dashboard data" });
+    console.error("Error fetching dashboard data:", error.message);
+    res.status(500).json({ error: "Failed to fetch dashboard data" });
   }
 });
 
@@ -362,8 +275,8 @@ router.get("/system-info", (req, res) => {
       }
     });
   } catch (error) {
-    console.error("âŒ Error fetching system info:", error.message);
-    res.status(500).json({ error: "âŒ Failed to fetch system info" });
+    console.error("Error fetching system info:", error.message);
+    res.status(500).json({ error: "Failed to fetch system info" });
   }
 });
 
