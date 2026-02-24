@@ -1,8 +1,8 @@
-// routes/logsRoutes.js
+﻿// routes/logsRoutes.js - SQLite Version
 const express = require("express");
 const router = express.Router();
-const { db, firebaseInitialized } = require("../firebase");
 const { verifyFirebaseToken } = require("../middleware");
+const { run, get, all } = require("../database");
 
 /**
  * Get access logs
@@ -11,9 +11,6 @@ router.get("/", verifyFirebaseToken, async (req, res) => {
   try {
     const { limit = 100, offset = 0 } = req.query;
     
-    if (!firebaseInitialized) {
-      return res.status(500).json({ error: "❌ Firebase not initialized" });
-    }
     
     const snapshot = await db.collection("access_logs")
       .orderBy("timestamp", "desc")
@@ -30,8 +27,8 @@ router.get("/", verifyFirebaseToken, async (req, res) => {
     
     res.json({ success: true, logs, count: logs.length });
   } catch (error) {
-    console.error("❌ Error fetching logs:", error.message);
-    res.status(500).json({ error: "❌ Failed to fetch logs" });
+    console.error("âŒ Error fetching logs:", error.message);
+    res.status(500).json({ error: "âŒ Failed to fetch logs" });
   }
 });
 
@@ -43,9 +40,6 @@ router.get("/user/:userId", verifyFirebaseToken, async (req, res) => {
     const { userId } = req.params;
     const { limit = 50 } = req.query;
     
-    if (!firebaseInitialized) {
-      return res.status(500).json({ error: "❌ Firebase not initialized" });
-    }
     
     const snapshot = await db.collection("access_logs")
       .where("userId", "==", userId)
@@ -63,8 +57,8 @@ router.get("/user/:userId", verifyFirebaseToken, async (req, res) => {
     
     res.json({ success: true, logs, count: logs.length });
   } catch (error) {
-    console.error("❌ Error fetching user logs:", error.message);
-    res.status(500).json({ error: "❌ Failed to fetch user logs" });
+    console.error("âŒ Error fetching user logs:", error.message);
+    res.status(500).json({ error: "âŒ Failed to fetch user logs" });
   }
 });
 
@@ -76,9 +70,6 @@ router.get("/patient/:patientId", verifyFirebaseToken, async (req, res) => {
     const { patientId } = req.params;
     const { limit = 50 } = req.query;
     
-    if (!firebaseInitialized) {
-      return res.status(500).json({ error: "❌ Firebase not initialized" });
-    }
     
     const snapshot = await db.collection("access_logs")
       .where("patientId", "==", patientId)
@@ -96,8 +87,8 @@ router.get("/patient/:patientId", verifyFirebaseToken, async (req, res) => {
     
     res.json({ success: true, logs, count: logs.length });
   } catch (error) {
-    console.error("❌ Error fetching patient logs:", error.message);
-    res.status(500).json({ error: "❌ Failed to fetch patient logs" });
+    console.error("âŒ Error fetching patient logs:", error.message);
+    res.status(500).json({ error: "âŒ Failed to fetch patient logs" });
   }
 });
 
@@ -109,12 +100,9 @@ router.post("/", verifyFirebaseToken, async (req, res) => {
     const { userId, action, patientId, details = {} } = req.body;
     
     if (!userId || !action) {
-      return res.status(400).json({ error: "❌ Missing required fields" });
+      return res.status(400).json({ error: "âŒ Missing required fields" });
     }
     
-    if (!firebaseInitialized) {
-      return res.status(500).json({ error: "❌ Firebase not initialized" });
-    }
     
     const logRef = db.collection("access_logs").doc();
     const logData = {
@@ -128,16 +116,16 @@ router.post("/", verifyFirebaseToken, async (req, res) => {
     
     await logRef.set(logData);
     
-    console.log(`✅ Access log created: ${logRef.id}`);
+    console.log(`âœ… Access log created: ${logRef.id}`);
     res.json({
       success: true,
-      message: "✅ Log recorded",
+      message: "âœ… Log recorded",
       logId: logRef.id,
       log: logData
     });
   } catch (error) {
-    console.error("❌ Error creating access log:", error.message);
-    res.status(500).json({ error: "❌ Failed to create access log" });
+    console.error("âŒ Error creating access log:", error.message);
+    res.status(500).json({ error: "âŒ Failed to create access log" });
   }
 });
 
@@ -151,12 +139,9 @@ router.get("/date-range/:startDate/:endDate", verifyFirebaseToken, async (req, r
     const end = new Date(endDate);
     
     if (isNaN(start) || isNaN(end)) {
-      return res.status(400).json({ error: "❌ Invalid date format" });
+      return res.status(400).json({ error: "âŒ Invalid date format" });
     }
     
-    if (!firebaseInitialized) {
-      return res.status(500).json({ error: "❌ Firebase not initialized" });
-    }
     
     const snapshot = await db.collection("access_logs")
       .where("timestamp", ">=", start)
@@ -174,9 +159,10 @@ router.get("/date-range/:startDate/:endDate", verifyFirebaseToken, async (req, r
     
     res.json({ success: true, logs, count: logs.length });
   } catch (error) {
-    console.error("❌ Error fetching logs for date range:", error.message);
-    res.status(500).json({ error: "❌ Failed to fetch logs" });
+    console.error("âŒ Error fetching logs for date range:", error.message);
+    res.status(500).json({ error: "âŒ Failed to fetch logs" });
   }
 });
 
 module.exports = router;
+

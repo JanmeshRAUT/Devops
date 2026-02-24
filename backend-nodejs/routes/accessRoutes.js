@@ -1,8 +1,8 @@
-// routes/accessRoutes.js
+﻿// routes/accessRoutes.js - SQLite Version
 const express = require("express");
 const router = express.Router();
-const { db, firebaseInitialized } = require("../firebase");
 const { verifyFirebaseToken } = require("../middleware");
+const { run, get, all } = require("../database");
 
 /**
  * Request access to patient record
@@ -13,12 +13,9 @@ router.post("/request", verifyFirebaseToken, async (req, res) => {
     const requesterId = req.user.email;
     
     if (!patientId || !accessType) {
-      return res.status(400).json({ error: "❌ Missing required fields" });
+      return res.status(400).json({ error: "âŒ Missing required fields" });
     }
     
-    if (!firebaseInitialized) {
-      return res.status(500).json({ error: "❌ Firebase not initialized" });
-    }
     
     const accessRef = db.collection("access_requests").doc();
     const accessData = {
@@ -33,16 +30,16 @@ router.post("/request", verifyFirebaseToken, async (req, res) => {
     
     await accessRef.set(accessData);
     
-    console.log(`✅ Access request created: ${accessRef.id}`);
+    console.log(`âœ… Access request created: ${accessRef.id}`);
     res.json({
       success: true,
-      message: "✅ Access request submitted",
+      message: "âœ… Access request submitted",
       requestId: accessRef.id,
       request: accessData
     });
   } catch (error) {
-    console.error("❌ Error creating access request:", error.message);
-    res.status(500).json({ error: "❌ Failed to create access request" });
+    console.error("âŒ Error creating access request:", error.message);
+    res.status(500).json({ error: "âŒ Failed to create access request" });
   }
 });
 
@@ -53,14 +50,11 @@ router.put("/:requestId/approve", verifyFirebaseToken, async (req, res) => {
   try {
     const { requestId } = req.params;
     
-    if (!firebaseInitialized) {
-      return res.status(500).json({ error: "❌ Firebase not initialized" });
-    }
     
     const accessDoc = await db.collection("access_requests").doc(requestId).get();
     
     if (!accessDoc.exists) {
-      return res.status(404).json({ error: "❌ Access request not found" });
+      return res.status(404).json({ error: "âŒ Access request not found" });
     }
     
     await db.collection("access_requests").doc(requestId).update({
@@ -69,11 +63,11 @@ router.put("/:requestId/approve", verifyFirebaseToken, async (req, res) => {
       approvedAt: new Date()
     });
     
-    console.log(`✅ Access request approved: ${requestId}`);
-    res.json({ success: true, message: "✅ Access request approved" });
+    console.log(`âœ… Access request approved: ${requestId}`);
+    res.json({ success: true, message: "âœ… Access request approved" });
   } catch (error) {
-    console.error("❌ Error approving access request:", error.message);
-    res.status(500).json({ error: "❌ Failed to approve access request" });
+    console.error("âŒ Error approving access request:", error.message);
+    res.status(500).json({ error: "âŒ Failed to approve access request" });
   }
 });
 
@@ -85,9 +79,6 @@ router.put("/:requestId/deny", verifyFirebaseToken, async (req, res) => {
     const { requestId } = req.params;
     const { reason } = req.body;
     
-    if (!firebaseInitialized) {
-      return res.status(500).json({ error: "❌ Firebase not initialized" });
-    }
     
     await db.collection("access_requests").doc(requestId).update({
       status: "denied",
@@ -96,11 +87,11 @@ router.put("/:requestId/deny", verifyFirebaseToken, async (req, res) => {
       denialReason: reason || ""
     });
     
-    console.log(`✅ Access request denied: ${requestId}`);
-    res.json({ success: true, message: "✅ Access request denied" });
+    console.log(`âœ… Access request denied: ${requestId}`);
+    res.json({ success: true, message: "âœ… Access request denied" });
   } catch (error) {
-    console.error("❌ Error denying access request:", error.message);
-    res.status(500).json({ error: "❌ Failed to deny access request" });
+    console.error("âŒ Error denying access request:", error.message);
+    res.status(500).json({ error: "âŒ Failed to deny access request" });
   }
 });
 
@@ -113,12 +104,9 @@ router.post("/emergency", verifyFirebaseToken, async (req, res) => {
     const grantedBy = req.user.email;
     
     if (!patientId || !reason) {
-      return res.status(400).json({ error: "❌ Missing required fields" });
+      return res.status(400).json({ error: "âŒ Missing required fields" });
     }
     
-    if (!firebaseInitialized) {
-      return res.status(500).json({ error: "❌ Firebase not initialized" });
-    }
     
     const emergencyRef = db.collection("emergency_access").doc();
     const emergencyData = {
@@ -131,16 +119,16 @@ router.post("/emergency", verifyFirebaseToken, async (req, res) => {
     
     await emergencyRef.set(emergencyData);
     
-    console.log(`✅ Emergency access granted: ${emergencyRef.id}`);
+    console.log(`âœ… Emergency access granted: ${emergencyRef.id}`);
     res.json({
       success: true,
-      message: "✅ Emergency access granted",
+      message: "âœ… Emergency access granted",
       accessId: emergencyRef.id,
       access: emergencyData
     });
   } catch (error) {
-    console.error("❌ Error granting emergency access:", error.message);
-    res.status(500).json({ error: "❌ Failed to grant emergency access" });
+    console.error("âŒ Error granting emergency access:", error.message);
+    res.status(500).json({ error: "âŒ Failed to grant emergency access" });
   }
 });
 
@@ -151,9 +139,6 @@ router.get("/patient/:patientId", verifyFirebaseToken, async (req, res) => {
   try {
     const { patientId } = req.params;
     
-    if (!firebaseInitialized) {
-      return res.status(500).json({ error: "❌ Firebase not initialized" });
-    }
     
     const snapshot = await db.collection("access_requests")
       .where("patientId", "==", patientId)
@@ -169,8 +154,8 @@ router.get("/patient/:patientId", verifyFirebaseToken, async (req, res) => {
     
     res.json({ success: true, requests, count: requests.length });
   } catch (error) {
-    console.error("❌ Error fetching access requests:", error.message);
-    res.status(500).json({ error: "❌ Failed to fetch access requests" });
+    console.error("âŒ Error fetching access requests:", error.message);
+    res.status(500).json({ error: "âŒ Failed to fetch access requests" });
   }
 });
 
@@ -182,12 +167,9 @@ router.post("/doctor_access", async (req, res) => {
     const { name, patientId, reason } = req.body;
     
     if (!name || !patientId) {
-      return res.status(400).json({ error: "❌ Missing required fields: name, patientId" });
+      return res.status(400).json({ error: "âŒ Missing required fields: name, patientId" });
     }
     
-    if (!firebaseInitialized) {
-      return res.status(500).json({ error: "❌ Firebase not initialized" });
-    }
     
     const accessRef = db.collection("access_requests").doc();
     const accessData = {
@@ -202,15 +184,15 @@ router.post("/doctor_access", async (req, res) => {
     
     await accessRef.set(accessData);
     
-    console.log(`✅ Doctor access request created: ${accessRef.id}`);
+    console.log(`âœ… Doctor access request created: ${accessRef.id}`);
     res.json({
       success: true,
-      message: "✅ Access request submitted",
+      message: "âœ… Access request submitted",
       requestId: accessRef.id
     });
   } catch (error) {
-    console.error("❌ Error creating doctor access request:", error.message);
-    res.status(500).json({ error: "❌ Failed to create access request" });
+    console.error("âŒ Error creating doctor access request:", error.message);
+    res.status(500).json({ error: "âŒ Failed to create access request" });
   }
 });
 
@@ -222,12 +204,9 @@ router.post("/nurse_access", async (req, res) => {
     const { name, patientId, reason } = req.body;
     
     if (!name || !patientId) {
-      return res.status(400).json({ error: "❌ Missing required fields: name, patientId" });
+      return res.status(400).json({ error: "âŒ Missing required fields: name, patientId" });
     }
     
-    if (!firebaseInitialized) {
-      return res.status(500).json({ error: "❌ Firebase not initialized" });
-    }
     
     const accessRef = db.collection("access_requests").doc();
     const accessData = {
@@ -242,15 +221,15 @@ router.post("/nurse_access", async (req, res) => {
     
     await accessRef.set(accessData);
     
-    console.log(`✅ Nurse access request created: ${accessRef.id}`);
+    console.log(`âœ… Nurse access request created: ${accessRef.id}`);
     res.json({
       success: true,
-      message: "✅ Access request submitted",
+      message: "âœ… Access request submitted",
       requestId: accessRef.id
     });
   } catch (error) {
-    console.error("❌ Error creating nurse access request:", error.message);
-    res.status(500).json({ error: "❌ Failed to create access request" });
+    console.error("âŒ Error creating nurse access request:", error.message);
+    res.status(500).json({ error: "âŒ Failed to create access request" });
   }
 });
 
@@ -262,12 +241,9 @@ router.get("/precheck", async (req, res) => {
     const { patientId, userId } = req.query;
     
     if (!patientId || !userId) {
-      return res.status(400).json({ error: "❌ Missing required fields: patientId, userId" });
+      return res.status(400).json({ error: "âŒ Missing required fields: patientId, userId" });
     }
     
-    if (!firebaseInitialized) {
-      return res.status(500).json({ error: "❌ Firebase not initialized" });
-    }
     
     // Check if user has active access
     const snapshot = await db.collection("access_requests")
@@ -281,12 +257,13 @@ router.get("/precheck", async (req, res) => {
     res.json({
       success: true,
       hasAccess,
-      message: hasAccess ? "✅ Access granted" : "❌ No active access"
+      message: hasAccess ? "âœ… Access granted" : "âŒ No active access"
     });
   } catch (error) {
-    console.error("❌ Error checking access:", error.message);
-    res.status(500).json({ error: "❌ Failed to check access" });
+    console.error("âŒ Error checking access:", error.message);
+    res.status(500).json({ error: "âŒ Failed to check access" });
   }
 });
 
 module.exports = router;
+

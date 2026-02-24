@@ -9,7 +9,9 @@ module.exports = {
   EMAIL_SENDER: process.env.EMAIL_SENDER || "janmeshraut.mitadt@gmail.com",
   EMAIL_PASSWORD: process.env.EMAIL_PASSWORD || "",
   
-  FIREBASE_CONFIG_PATH: process.env.FIREBASE_CONFIG_PATH || "./firebase_config.json",
+  // SQLite
+  DATABASE_PATH: process.env.DATABASE_PATH || "./ehr.db",
+  JWT_SECRET: process.env.JWT_SECRET || "your-secret-key-change-in-production",
   
   PORT: parseInt(process.env.PORT) || 5000,
   NODE_ENV: process.env.NODE_ENV || "development"

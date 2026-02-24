@@ -1,9 +1,9 @@
-// routes/authRoutes.js
+// routes/authRoutes.js - SQLite Version
 const express = require("express");
 const router = express.Router();
-const { auth, db, firebaseInitialized } = require("../firebase");
 const { strictLimiter, otpLimiter } = require("../limiter");
-const { sendOtpEmail, generateOTP, isValidEmail } = require("../utils");
+const { sendOtpEmail, generateOTP, isValidEmail, generateToken } = require("../utils");
+const { run, get } = require("../database");
 const config = require("../config");
 
 // In-memory OTP sessions
@@ -14,29 +14,28 @@ const otpSessions = {};
  */
 router.post("/admin/login", async (req, res) => {
   try {
-    const token = req.headers.authorization?.replace("Bearer ", "");
+    const { email, password } = req.body;
     
-    if (!token) {
-      return res.status(401).json({ error: "❌ Missing token" });
+    if (!email || !password) {
+      return res.status(400).json({ error: "❌ Email and password required" });
     }
     
-    if (!firebaseInitialized) {
-      return res.status(500).json({ error: "❌ Firebase not initialized" });
+    if (email !== config.ADMIN_EMAIL) {
+      return res.status(403).json({ success: false, error: "❌ Not an admin" });
     }
     
-    const decoded = await auth.verifyIdToken(token);
-    const email = decoded.email;
+    console.log(`✅ Admin login verified: ${email}`);
     
-    if (email === config.ADMIN_EMAIL) {
-      console.log(`✅ Admin verified: ${email}`);
-      return res.json({ success: true, message: "✅ Admin verified" });
-    }
-    
-    console.log(`🚫 Unauthorized admin attempt: ${email}`);
-    return res.status(403).json({ success: false, error: "❌ Not an admin" });
+    const token = generateToken({ email, role: "admin" });
+    res.json({ 
+      success: true, 
+      message: "✅ Admin verified",
+      token,
+      user: { email, role: "admin" }
+    });
   } catch (error) {
-    console.error("❌ Token error:", error.message);
-    res.status(401).json({ error: "❌ Invalid or expired token" });
+    console.error("❌ Login error:", error.message);
+    res.status(500).json({ error: "❌ Internal server error" });
   }
 });
 
@@ -61,13 +60,9 @@ router.post("/user_login", strictLimiter, async (req, res) => {
       return res.status(400).json({ error: `❌ Invalid role. Must be one of: ${validRoles.join(", ")}` });
     }
     
-    if (!firebaseInitialized) {
-      return res.status(500).json({ error: "❌ Firebase not initialized" });
-    }
-    
     // Generate and send OTP
     const otp = generateOTP();
-    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
     
     otpSessions[email] = {
       otp,
@@ -113,7 +108,7 @@ router.post("/verify_otp", async (req, res) => {
       return res.status(400).json({ error: "❌ No active OTP session for this email" });
     }
     
-    if (Date.now() > session.expiresAt) {
+    if (new Date() > session.expiresAt) {
       delete otpSessions[email];
       return res.status(400).json({ error: "❌ OTP expired" });
     }
@@ -128,32 +123,42 @@ router.post("/verify_otp", async (req, res) => {
       return res.status(400).json({ error: "❌ Invalid OTP" });
     }
     
-    if (!firebaseInitialized) {
-      return res.status(500).json({ error: "❌ Firebase not initialized" });
-    }
-    
-    // Create or update user record in Firestore
     try {
-      const userRef = db.collection("users").doc(email);
-      const userDoc = await userRef.get();
+      // Check if user exists
+      const existingUser = await get(
+        "SELECT * FROM users WHERE email = ?",
+        [email]
+      );
       
-      const userData = {
-        email,
-        name: session.name,
-        role: session.role,
-        lastLogin: new Date(),
-        ...(userDoc.exists ? {} : { createdAt: new Date() })
-      };
-      
-      await userRef.set(userData, { merge: true });
+      if (!existingUser) {
+        // Create new user
+        await run(
+          `INSERT INTO users (email, name, role, createdAt, updatedAt, lastLogin)
+           VALUES (?, ?, ?, datetime('now'), datetime('now'), datetime('now'))`,
+          [email, session.name, session.role]
+        );
+      } else {
+        // Update last login
+        await run(
+          "UPDATE users SET lastLogin = datetime('now') WHERE email = ?",
+          [email]
+        );
+      }
       
       delete otpSessions[email];
+      
+      const token = generateToken({ email, name: session.name, role: session.role });
       
       console.log(`✅ User ${email} verified`);
       res.json({
         success: true,
         message: "✅ OTP verified",
-        user: userData
+        token,
+        user: {
+          email,
+          name: session.name,
+          role: session.role
+        }
       });
     } catch (dbError) {
       console.error("❌ Database error:", dbError.message);
@@ -202,7 +207,7 @@ router.post("/resend_otp", otpLimiter, async (req, res) => {
     
     const newOtp = generateOTP();
     otpSessions[email].otp = newOtp;
-    otpSessions[email].expiresAt = Date.now() + 10 * 60 * 1000;
+    otpSessions[email].expiresAt = new Date(Date.now() + 10 * 60 * 1000);
     otpSessions[email].attempts = 0;
     
     const emailSent = await sendOtpEmail(email, newOtp);

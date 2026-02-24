@@ -10,12 +10,12 @@ dotenv.config();
 // Import config
 const config = require("./config");
 
+// Import database
+const { db } = require("./database");
+
 // Import middleware
 const { errorHandler, requestLogger } = require("./middleware");
 const { limiter } = require("./limiter");
-
-// Import firebase
-const { firebaseInitialized } = require("./firebase");
 
 // Import routes
 const authRoutes = require("./routes/authRoutes");
@@ -68,7 +68,7 @@ app.use("/", accessRoutes);
 app.get("/health", (req, res) => {
   res.json({
     status: "✅ Backend is running",
-    firebase: firebaseInitialized ? "✅ Connected" : "❌ Not connected",
+    database: "✅ SQLite connected",
     environment: config.NODE_ENV,
     timestamp: new Date().toISOString()
   });
@@ -92,7 +92,7 @@ const PORT = config.PORT;
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`\n🚀 Express.js server running on port ${PORT}`);
   console.log(`   Environment: ${config.NODE_ENV}`);
-  console.log(`   Firebase: ${firebaseInitialized ? "✅ Connected" : "❌ Not connected"}`);
+  console.log(`   Database: ✅ SQLite connected`);
   console.log(`   Health check: http://localhost:${PORT}/health\n`);
 });
 

@@ -1,35 +1,10 @@
 // middleware.js
 const { verifyToken } = require("./utils");
-const { auth, firebaseInitialized } = require("./firebase");
-
-/**
- * Verify Firebase ID token
- */
-async function verifyFirebaseToken(req, res, next) {
-  const token = req.headers.authorization?.replace("Bearer ", "");
-  
-  if (!token) {
-    return res.status(401).json({ error: "❌ Missing authorization token" });
-  }
-  
-  try {
-    if (!firebaseInitialized) {
-      return res.status(500).json({ error: "❌ Firebase not initialized" });
-    }
-    
-    const decodedToken = await auth.verifyIdToken(token);
-    req.user = decodedToken;
-    next();
-  } catch (error) {
-    console.error("❌ Token verification failed:", error.message);
-    res.status(401).json({ error: "❌ Invalid or expired token" });
-  }
-}
 
 /**
  * Verify JWT token
  */
-async function verifyJWTToken(req, res, next) {
+function verifyFirebaseToken(req, res, next) {
   const token = req.headers.authorization?.replace("Bearer ", "");
   
   if (!token) {
@@ -67,19 +42,6 @@ function errorHandler(err, req, res, next) {
 }
 
 /**
- * CORS error handler
- */
-function handleCorsError(err, req, res, next) {
-  if (err.message === "Not allowed by CORS") {
-    return res.status(403).json({
-      success: false,
-      error: "❌ CORS error: Origin not allowed"
-    });
-  }
-  next(err);
-}
-
-/**
  * Request logger middleware
  */
 function requestLogger(req, res, next) {
@@ -93,8 +55,6 @@ function requestLogger(req, res, next) {
 
 module.exports = {
   verifyFirebaseToken,
-  verifyJWTToken,
   errorHandler,
-  handleCorsError,
   requestLogger
 };

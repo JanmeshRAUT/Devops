@@ -1,9 +1,8 @@
-// routes/generalRoutes.js
+﻿// routes/generalRoutes.js - SQLite Version
 const express = require("express");
 const router = express.Router();
-const { db, firebaseInitialized } = require("../firebase");
 const { verifyFirebaseToken } = require("../middleware");
-const { logAccessEvent } = require("../utils");
+const { run, get, all } = require("../database");
 const { calculateTrustScore, getTrustLevel } = require("../trustLogic");
 
 /**
@@ -11,8 +10,8 @@ const { calculateTrustScore, getTrustLevel } = require("../trustLogic");
  */
 router.get("/health", (req, res) => {
   res.json({
-    status: "✅ Backend is running",
-    firebase: firebaseInitialized ? "✅ Connected" : "❌ Not connected",
+    status: "âœ… Backend is running",
+    database: "✅ SQLite connected",
     environment: process.env.NODE_ENV || "development",
     timestamp: new Date().toISOString()
   });
@@ -30,8 +29,8 @@ router.get("/ip_check", (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error("❌ IP check error:", error.message);
-    res.status(500).json({ error: "❌ Failed to get IP" });
+    console.error("âŒ IP check error:", error.message);
+    res.status(500).json({ error: "âŒ Failed to get IP" });
   }
 });
 
@@ -40,9 +39,6 @@ router.get("/ip_check", (req, res) => {
  */
 router.get("/stats", async (req, res) => {
   try {
-    if (!firebaseInitialized) {
-      return res.status(500).json({ error: "❌ Firebase not initialized" });
-    }
     
     const usersSnapshot = await db.collection("users").get();
     const patientsSnapshot = await db.collection("patients").get();
@@ -60,8 +56,8 @@ router.get("/stats", async (req, res) => {
       }
     });
   } catch (error) {
-    console.error("❌ Error fetching statistics:", error.message);
-    res.status(500).json({ error: "❌ Failed to fetch statistics" });
+    console.error("âŒ Error fetching statistics:", error.message);
+    res.status(500).json({ error: "âŒ Failed to fetch statistics" });
   }
 });
 
@@ -72,9 +68,6 @@ router.get("/trust_score/:name", async (req, res) => {
   try {
     const { name } = req.params;
     
-    if (!firebaseInitialized) {
-      return res.status(500).json({ error: "❌ Firebase not initialized" });
-    }
     
     // Query user by name
     const userSnapshot = await db.collection("users")
@@ -83,7 +76,7 @@ router.get("/trust_score/:name", async (req, res) => {
       .get();
     
     if (userSnapshot.empty) {
-      return res.status(404).json({ error: "❌ User not found" });
+      return res.status(404).json({ error: "âŒ User not found" });
     }
     
     const user = userSnapshot.docs[0].data();
@@ -101,8 +94,8 @@ router.get("/trust_score/:name", async (req, res) => {
       }
     });
   } catch (error) {
-    console.error("❌ Error fetching trust score:", error.message);
-    res.status(500).json({ error: "❌ Failed to fetch trust score" });
+    console.error("âŒ Error fetching trust score:", error.message);
+    res.status(500).json({ error: "âŒ Failed to fetch trust score" });
   }
 });
 
@@ -111,9 +104,6 @@ router.get("/trust_score/:name", async (req, res) => {
  */
 router.get("/get_all_users", async (req, res) => {
   try {
-    if (!firebaseInitialized) {
-      return res.status(500).json({ error: "❌ Firebase not initialized" });
-    }
     
     const snapshot = await db.collection("users").get();
     const users = [];
@@ -127,8 +117,8 @@ router.get("/get_all_users", async (req, res) => {
     
     res.json({ success: true, users, count: users.length });
   } catch (error) {
-    console.error("❌ Error fetching users:", error.message);
-    res.status(500).json({ error: "❌ Failed to fetch users" });
+    console.error("âŒ Error fetching users:", error.message);
+    res.status(500).json({ error: "âŒ Failed to fetch users" });
   }
 });
 
@@ -137,9 +127,6 @@ router.get("/get_all_users", async (req, res) => {
  */
 router.get("/all_patients", async (req, res) => {
   try {
-    if (!firebaseInitialized) {
-      return res.status(500).json({ error: "❌ Firebase not initialized" });
-    }
     
     const snapshot = await db.collection("patients").get();
     const patients = [];
@@ -153,8 +140,8 @@ router.get("/all_patients", async (req, res) => {
     
     res.json({ success: true, patients, count: patients.length });
   } catch (error) {
-    console.error("❌ Error fetching patients:", error.message);
-    res.status(500).json({ error: "❌ Failed to fetch patients" });
+    console.error("âŒ Error fetching patients:", error.message);
+    res.status(500).json({ error: "âŒ Failed to fetch patients" });
   }
 });
 
@@ -163,9 +150,6 @@ router.get("/all_patients", async (req, res) => {
  */
 router.get("/access_logs/admin", async (req, res) => {
   try {
-    if (!firebaseInitialized) {
-      return res.status(500).json({ error: "❌ Firebase not initialized" });
-    }
     
     const snapshot = await db.collection("access_logs")
       .orderBy("timestamp", "desc")
@@ -182,8 +166,8 @@ router.get("/access_logs/admin", async (req, res) => {
     
     res.json({ success: true, logs, count: logs.length });
   } catch (error) {
-    console.error("❌ Error fetching admin access logs:", error.message);
-    res.status(500).json({ error: "❌ Failed to fetch access logs" });
+    console.error("âŒ Error fetching admin access logs:", error.message);
+    res.status(500).json({ error: "âŒ Failed to fetch access logs" });
   }
 });
 
@@ -192,9 +176,6 @@ router.get("/access_logs/admin", async (req, res) => {
  */
 router.get("/all_doctor_access_logs", async (req, res) => {
   try {
-    if (!firebaseInitialized) {
-      return res.status(500).json({ error: "❌ Firebase not initialized" });
-    }
     
     const snapshot = await db.collection("access_logs")
       .where("role", "==", "doctor")
@@ -212,8 +193,8 @@ router.get("/all_doctor_access_logs", async (req, res) => {
     
     res.json({ success: true, logs, count: logs.length });
   } catch (error) {
-    console.error("❌ Error fetching doctor access logs:", error.message);
-    res.status(500).json({ error: "❌ Failed to fetch doctor access logs" });
+    console.error("âŒ Error fetching doctor access logs:", error.message);
+    res.status(500).json({ error: "âŒ Failed to fetch doctor access logs" });
   }
 });
 
@@ -222,9 +203,6 @@ router.get("/all_doctor_access_logs", async (req, res) => {
  */
 router.get("/all_nurse_access_logs", async (req, res) => {
   try {
-    if (!firebaseInitialized) {
-      return res.status(500).json({ error: "❌ Firebase not initialized" });
-    }
     
     const snapshot = await db.collection("access_logs")
       .where("role", "==", "nurse")
@@ -242,8 +220,8 @@ router.get("/all_nurse_access_logs", async (req, res) => {
     
     res.json({ success: true, logs, count: logs.length });
   } catch (error) {
-    console.error("❌ Error fetching nurse access logs:", error.message);
-    res.status(500).json({ error: "❌ Failed to fetch nurse access logs" });
+    console.error("âŒ Error fetching nurse access logs:", error.message);
+    res.status(500).json({ error: "âŒ Failed to fetch nurse access logs" });
   }
 });
 
@@ -254,9 +232,6 @@ router.get("/nurse_access_logs/:name", async (req, res) => {
   try {
     const { name } = req.params;
     
-    if (!firebaseInitialized) {
-      return res.status(500).json({ error: "❌ Firebase not initialized" });
-    }
     
     const snapshot = await db.collection("access_logs")
       .where("name", "==", name)
@@ -275,8 +250,8 @@ router.get("/nurse_access_logs/:name", async (req, res) => {
     
     res.json({ success: true, logs, count: logs.length });
   } catch (error) {
-    console.error("❌ Error fetching nurse access logs:", error.message);
-    res.status(500).json({ error: "❌ Failed to fetch nurse access logs" });
+    console.error("âŒ Error fetching nurse access logs:", error.message);
+    res.status(500).json({ error: "âŒ Failed to fetch nurse access logs" });
   }
 });
 
@@ -288,12 +263,9 @@ router.post("/log_access", async (req, res) => {
     const { name, role, patientId, action, reason, ip } = req.body;
     
     if (!name || !role || !patientId) {
-      return res.status(400).json({ error: "❌ Missing required fields" });
+      return res.status(400).json({ error: "âŒ Missing required fields" });
     }
     
-    if (!firebaseInitialized) {
-      return res.status(500).json({ error: "❌ Firebase not initialized" });
-    }
     
     const logRef = db.collection("access_logs").doc();
     const logData = {
@@ -308,15 +280,15 @@ router.post("/log_access", async (req, res) => {
     
     await logRef.set(logData);
     
-    console.log(`✅ Access log created: ${logRef.id}`);
+    console.log(`âœ… Access log created: ${logRef.id}`);
     res.json({
       success: true,
-      message: "✅ Access logged",
+      message: "âœ… Access logged",
       logId: logRef.id
     });
   } catch (error) {
-    console.error("❌ Error logging access:", error.message);
-    res.status(500).json({ error: "❌ Failed to log access" });
+    console.error("âŒ Error logging access:", error.message);
+    res.status(500).json({ error: "âŒ Failed to log access" });
   }
 });
 
@@ -325,9 +297,6 @@ router.post("/log_access", async (req, res) => {
  */
 router.get("/dashboard", async (req, res) => {
   try {
-    if (!firebaseInitialized) {
-      return res.status(500).json({ error: "❌ Firebase not initialized" });
-    }
     
     // Get recent access logs
     const recentLogs = await db.collection("access_logs")
@@ -365,8 +334,8 @@ router.get("/dashboard", async (req, res) => {
       }
     });
   } catch (error) {
-    console.error("❌ Error fetching dashboard data:", error.message);
-    res.status(500).json({ error: "❌ Failed to fetch dashboard data" });
+    console.error("âŒ Error fetching dashboard data:", error.message);
+    res.status(500).json({ error: "âŒ Failed to fetch dashboard data" });
   }
 });
 
@@ -393,9 +362,10 @@ router.get("/system-info", (req, res) => {
       }
     });
   } catch (error) {
-    console.error("❌ Error fetching system info:", error.message);
-    res.status(500).json({ error: "❌ Failed to fetch system info" });
+    console.error("âŒ Error fetching system info:", error.message);
+    res.status(500).json({ error: "âŒ Failed to fetch system info" });
   }
 });
 
 module.exports = router;
+

@@ -1,8 +1,8 @@
-// routes/patientRoutes.js
+﻿// routes/patientRoutes.js - SQLite Version
 const express = require("express");
 const router = express.Router();
-const { db, firebaseInitialized } = require("../firebase");
 const { verifyFirebaseToken } = require("../middleware");
+const { run, get, all } = require("../database");
 
 /**
  * Create patient record (supports both POST / and POST /add_patient)
@@ -12,12 +12,9 @@ router.post("/", async (req, res) => {
     const { patientName, age, gender, medicalHistory, emergencyContact } = req.body;
     
     if (!patientName || !age || !gender) {
-      return res.status(400).json({ error: "❌ Missing required fields" });
+      return res.status(400).json({ error: "âŒ Missing required fields" });
     }
     
-    if (!firebaseInitialized) {
-      return res.status(500).json({ error: "❌ Firebase not initialized" });
-    }
     
     const patientRef = db.collection("patients").doc();
     const patientData = {
@@ -33,16 +30,16 @@ router.post("/", async (req, res) => {
     
     await patientRef.set(patientData);
     
-    console.log(`✅ Patient record created: ${patientRef.id}`);
+    console.log(`âœ… Patient record created: ${patientRef.id}`);
     res.json({
       success: true,
-      message: "✅ Patient record created",
+      message: "âœ… Patient record created",
       patientId: patientRef.id,
       patient: patientData
     });
   } catch (error) {
-    console.error("❌ Error creating patient record:", error.message);
-    res.status(500).json({ error: "❌ Failed to create patient record" });
+    console.error("âŒ Error creating patient record:", error.message);
+    res.status(500).json({ error: "âŒ Failed to create patient record" });
   }
 });
 
@@ -54,12 +51,9 @@ router.post("/add_patient", async (req, res) => {
     const { patientName, age, gender, medicalHistory, emergencyContact } = req.body;
     
     if (!patientName || !age || !gender) {
-      return res.status(400).json({ error: "❌ Missing required fields: patientName, age, gender" });
+      return res.status(400).json({ error: "âŒ Missing required fields: patientName, age, gender" });
     }
     
-    if (!firebaseInitialized) {
-      return res.status(500).json({ error: "❌ Firebase not initialized" });
-    }
     
     const patientRef = db.collection("patients").doc();
     const patientData = {
@@ -75,16 +69,16 @@ router.post("/add_patient", async (req, res) => {
     
     await patientRef.set(patientData);
     
-    console.log(`✅ Patient record created: ${patientRef.id}`);
+    console.log(`âœ… Patient record created: ${patientRef.id}`);
     res.json({
       success: true,
-      message: "✅ Patient record created",
+      message: "âœ… Patient record created",
       patientId: patientRef.id,
       patient: { id: patientRef.id, ...patientData }
     });
   } catch (error) {
-    console.error("❌ Error creating patient record:", error.message);
-    res.status(500).json({ error: "❌ Failed to create patient record" });
+    console.error("âŒ Error creating patient record:", error.message);
+    res.status(500).json({ error: "âŒ Failed to create patient record" });
   }
 });
 
@@ -95,20 +89,17 @@ router.get("/:patientId", verifyFirebaseToken, async (req, res) => {
   try {
     const { patientId } = req.params;
     
-    if (!firebaseInitialized) {
-      return res.status(500).json({ error: "❌ Firebase not initialized" });
-    }
     
     const patientDoc = await db.collection("patients").doc(patientId).get();
     
     if (!patientDoc.exists) {
-      return res.status(404).json({ error: "❌ Patient not found" });
+      return res.status(404).json({ error: "âŒ Patient not found" });
     }
     
     res.json({ success: true, patient: { id: patientDoc.id, ...patientDoc.data() } });
   } catch (error) {
-    console.error("❌ Error fetching patient record:", error.message);
-    res.status(500).json({ error: "❌ Failed to fetch patient record" });
+    console.error("âŒ Error fetching patient record:", error.message);
+    res.status(500).json({ error: "âŒ Failed to fetch patient record" });
   }
 });
 
@@ -123,17 +114,14 @@ router.put("/:patientId", verifyFirebaseToken, async (req, res) => {
       updatedAt: new Date()
     };
     
-    if (!firebaseInitialized) {
-      return res.status(500).json({ error: "❌ Firebase not initialized" });
-    }
     
     await db.collection("patients").doc(patientId).update(updateData);
     
-    console.log(`✅ Patient record updated: ${patientId}`);
-    res.json({ success: true, message: "✅ Patient record updated", patient: updateData });
+    console.log(`âœ… Patient record updated: ${patientId}`);
+    res.json({ success: true, message: "âœ… Patient record updated", patient: updateData });
   } catch (error) {
-    console.error("❌ Error updating patient record:", error.message);
-    res.status(500).json({ error: "❌ Failed to update patient record" });
+    console.error("âŒ Error updating patient record:", error.message);
+    res.status(500).json({ error: "âŒ Failed to update patient record" });
   }
 });
 
@@ -145,12 +133,9 @@ router.post("/update_patient", async (req, res) => {
     const patientId = req.body.patientId || req.body.id;
     
     if (!patientId) {
-      return res.status(400).json({ error: "❌ Missing patientId" });
+      return res.status(400).json({ error: "âŒ Missing patientId" });
     }
     
-    if (!firebaseInitialized) {
-      return res.status(500).json({ error: "❌ Firebase not initialized" });
-    }
     
     const updateData = {
       ...req.body,
@@ -163,11 +148,11 @@ router.post("/update_patient", async (req, res) => {
     
     await db.collection("patients").doc(patientId).update(updateData);
     
-    console.log(`✅ Patient record updated: ${patientId}`);
-    res.json({ success: true, message: "✅ Patient record updated", patient: { id: patientId, ...updateData } });
+    console.log(`âœ… Patient record updated: ${patientId}`);
+    res.json({ success: true, message: "âœ… Patient record updated", patient: { id: patientId, ...updateData } });
   } catch (error) {
-    console.error("❌ Error updating patient record:", error.message);
-    res.status(500).json({ error: "❌ Failed to update patient record" });
+    console.error("âŒ Error updating patient record:", error.message);
+    res.status(500).json({ error: "âŒ Failed to update patient record" });
   }
 });
 
@@ -176,9 +161,6 @@ router.post("/update_patient", async (req, res) => {
  */
 router.get("/", verifyFirebaseToken, async (req, res) => {
   try {
-    if (!firebaseInitialized) {
-      return res.status(500).json({ error: "❌ Firebase not initialized" });
-    }
     
     const snapshot = await db.collection("patients").get();
     const patients = [];
@@ -192,8 +174,8 @@ router.get("/", verifyFirebaseToken, async (req, res) => {
     
     res.json({ success: true, patients, count: patients.length });
   } catch (error) {
-    console.error("❌ Error fetching patients:", error.message);
-    res.status(500).json({ error: "❌ Failed to fetch patients" });
+    console.error("âŒ Error fetching patients:", error.message);
+    res.status(500).json({ error: "âŒ Failed to fetch patients" });
   }
 });
 
@@ -204,18 +186,16 @@ router.delete("/:patientId", verifyFirebaseToken, async (req, res) => {
   try {
     const { patientId } = req.params;
     
-    if (!firebaseInitialized) {
-      return res.status(500).json({ error: "❌ Firebase not initialized" });
-    }
     
     await db.collection("patients").doc(patientId).delete();
     
-    console.log(`✅ Patient record deleted: ${patientId}`);
-    res.json({ success: true, message: "✅ Patient record deleted" });
+    console.log(`âœ… Patient record deleted: ${patientId}`);
+    res.json({ success: true, message: "âœ… Patient record deleted" });
   } catch (error) {
-    console.error("❌ Error deleting patient record:", error.message);
-    res.status(500).json({ error: "❌ Failed to delete patient record" });
+    console.error("âŒ Error deleting patient record:", error.message);
+    res.status(500).json({ error: "âŒ Failed to delete patient record" });
   }
 });
 
 module.exports = router;
+

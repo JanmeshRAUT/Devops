@@ -1,8 +1,8 @@
-// routes/userRoutes.js
+// routes/userRoutes.js - SQLite Version
 const express = require("express");
 const router = express.Router();
-const { db, firebaseInitialized } = require("../firebase");
 const { verifyFirebaseToken } = require("../middleware");
+const { run, get, all } = require("../database");
 
 /**
  * Get user profile
@@ -11,17 +11,13 @@ router.get("/profile", verifyFirebaseToken, async (req, res) => {
   try {
     const email = req.user.email;
     
-    if (!firebaseInitialized) {
-      return res.status(500).json({ error: "❌ Firebase not initialized" });
-    }
+    const user = await get("SELECT * FROM users WHERE email = ?", [email]);
     
-    const userDoc = await db.collection("users").doc(email).get();
-    
-    if (!userDoc.exists) {
+    if (!user) {
       return res.status(404).json({ error: "❌ User not found" });
     }
     
-    res.json({ success: true, user: userDoc.data() });
+    res.json({ success: true, user });
   } catch (error) {
     console.error("❌ Error fetching user profile:", error.message);
     res.status(500).json({ error: "❌ Failed to fetch user profile" });
@@ -36,20 +32,32 @@ router.put("/profile", verifyFirebaseToken, async (req, res) => {
     const email = req.user.email;
     const { name, phone, department } = req.body;
     
-    if (!firebaseInitialized) {
-      return res.status(500).json({ error: "❌ Firebase not initialized" });
+    const updates = [];
+    const params = [];
+    
+    if (name) {
+      updates.push("name = ?");
+      params.push(name);
+    }
+    if (phone) {
+      updates.push("phone = ?");
+      params.push(phone);
+    }
+    if (department) {
+      updates.push("department = ?");
+      params.push(department);
     }
     
-    const updateData = {};
-    if (name) updateData.name = name;
-    if (phone) updateData.phone = phone;
-    if (department) updateData.department = department;
-    updateData.updatedAt = new Date();
+    updates.push("updatedAt = datetime('now')");
+    params.push(email);
     
-    await db.collection("users").doc(email).update(updateData);
+    await run(
+      `UPDATE users SET ${updates.join(", ")} WHERE email = ?`,
+      params
+    );
     
     console.log(`✅ User ${email} profile updated`);
-    res.json({ success: true, message: "✅ Profile updated", user: updateData });
+    res.json({ success: true, message: "✅ Profile updated" });
   } catch (error) {
     console.error("❌ Error updating user profile:", error.message);
     res.status(500).json({ error: "❌ Failed to update profile" });
@@ -61,19 +69,7 @@ router.put("/profile", verifyFirebaseToken, async (req, res) => {
  */
 router.get("/all", verifyFirebaseToken, async (req, res) => {
   try {
-    if (!firebaseInitialized) {
-      return res.status(500).json({ error: "❌ Firebase not initialized" });
-    }
-    
-    const snapshot = await db.collection("users").get();
-    const users = [];
-    
-    snapshot.forEach(doc => {
-      users.push({
-        id: doc.id,
-        ...doc.data()
-      });
-    });
+    const users = await all("SELECT * FROM users");
     
     res.json({ success: true, users, count: users.length });
   } catch (error) {
@@ -89,11 +85,7 @@ router.delete("/account", verifyFirebaseToken, async (req, res) => {
   try {
     const email = req.user.email;
     
-    if (!firebaseInitialized) {
-      return res.status(500).json({ error: "❌ Firebase not initialized" });
-    }
-    
-    await db.collection("users").doc(email).delete();
+    await run("DELETE FROM users WHERE email = ?", [email]);
     
     console.log(`✅ User ${email} account deleted`);
     res.json({ success: true, message: "✅ Account deleted" });
@@ -114,11 +106,7 @@ router.delete("/delete_user/:email", async (req, res) => {
       return res.status(400).json({ error: "❌ Email is required" });
     }
     
-    if (!firebaseInitialized) {
-      return res.status(500).json({ error: "❌ Firebase not initialized" });
-    }
-    
-    await db.collection("users").doc(email).delete();
+    await run("DELETE FROM users WHERE email = ?", [email]);
     
     console.log(`✅ User ${email} deleted`);
     res.json({ success: true, message: "✅ User deleted" });
