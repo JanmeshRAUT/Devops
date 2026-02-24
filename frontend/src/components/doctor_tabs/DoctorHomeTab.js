@@ -390,11 +390,11 @@ const DoctorHomeTab = ({
                   </div>
                 </div>
                 <button
-                  className="spc-clear"
-                  onClick={() => { handleSelectPatient(""); setSearchTerm(""); }}
-                  title="Deselect patient"
+                  className="btn-pro btn-pro-indigo"
+                  onClick={() => setActiveTab("patients")}
+                  title="Edit Patient Details"
                 >
-                  <FaTimes />
+                  <FaUserMd /> Edit Record
                 </button>
               </div>
             )}
@@ -405,11 +405,6 @@ const DoctorHomeTab = ({
         <div className="access-panel">
         <section className="ehr-section">
           <h2>🔐 Request Access</h2>
-          {!isInsideNetwork && (
-            <div className="access-network-notice">
-              ⚠️ <strong>External Network:</strong> Only Break-Glass access is available outside hospital Wi-Fi.
-            </div>
-          )}
           <div className="ehr-access-grid">
 
             {/* Normal — in-network only */}
@@ -422,7 +417,7 @@ const DoctorHomeTab = ({
                 onClick={() => handleAccessRequest("normal")}
                 disabled={loading.access || !selectedPatient || !isInsideNetwork}
               >
-                {loading.access ? "Processing..." : "Request Access"}
+                {loading.access ? "Processing..." : "Edit Details"}
               </button>
               {!isInsideNetwork && <small className="card-warning">🏥 In-network only</small>}
             </div>

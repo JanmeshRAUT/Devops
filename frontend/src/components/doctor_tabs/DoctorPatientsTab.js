@@ -1,9 +1,10 @@
 import React from 'react';
-import {
-  FaUserInjured,
-  FaSync,
-  FaSpinner,
-  FaExternalLinkAlt,
+import { 
+  FaUserInjured, 
+  FaSync, 
+  FaSpinner, 
+  FaArrowLeft,
+  FaCheckCircle 
 } from 'react-icons/fa';
 import "../../css/DoctorPatientsTab.css";
 
@@ -21,11 +22,6 @@ const DoctorPatientsTab = ({
   setActiveTab,          // ← used to redirect to Dashboard
   isInsideNetwork,
 }) => {
-  const handleViewInDashboard = (patientName) => {
-    handleSelectPatient(patientName);   // pre-select in Dashboard search
-    setActiveTab("dashboard");          // switch to Dashboard tab
-  };
-
   return (
     <div className="patients-content-wrapper">
 
