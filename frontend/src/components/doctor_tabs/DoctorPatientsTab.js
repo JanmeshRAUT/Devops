@@ -4,7 +4,9 @@ import {
   FaSync, 
   FaSpinner, 
   FaArrowLeft,
-  FaCheckCircle 
+  FaCheckCircle,
+  FaExclamationTriangle,
+  FaGlobeAsia
 } from 'react-icons/fa';
 import "../../css/DoctorPatientsTab.css";
 
@@ -21,6 +23,27 @@ const DoctorPatientsTab = ({
   setSelectedPatient,
   isInsideNetwork
 }) => {
+  // If not inside network, show restricted access message
+  if (!isInsideNetwork) {
+    return (
+      <div className="patients-content-wrapper">
+        <div className="network-restriction-banner">
+          <div className="restriction-icon-box">
+            <FaExclamationTriangle />
+            <FaGlobeAsia />
+          </div>
+          <div className="restriction-content">
+            <h3>🔒 Editing Restricted - Outside Network</h3>
+            <p>Record editing is only available when connected to the hospital network.</p>
+            <p className="restriction-details">
+              You are currently accessing the system from outside the secure hospital network. To edit patient records, please connect through the hospital VPN or access from within the hospital premises.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="patients-content-wrapper">
       {!selectedPatient ? (

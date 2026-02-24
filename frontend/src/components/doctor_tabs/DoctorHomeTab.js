@@ -305,11 +305,12 @@ const DoctorHomeTab = ({
 
               {selectedPatient && (
                 <button
-                  className="btn-pro btn-pro-indigo"
-                  onClick={() => setActiveTab("patients")}
-                  title="Edit Patient Details"
+                  className={`btn-pro btn-pro-indigo ${!isInsideNetwork ? "btn-disabled" : ""}`}
+                  onClick={() => isInsideNetwork && setActiveTab("patients")}
+                  title={isInsideNetwork ? "Edit Patient Details" : "Available only within hospital network"}
+                  disabled={!isInsideNetwork}
                 >
-                  <FaUserMd /> Edit Record
+                  <FaUserMd /> {isInsideNetwork ? "Edit Details" : "Edit Details (In-Network Only)"}
                 </button>
               )}
             </div>
@@ -319,7 +320,7 @@ const DoctorHomeTab = ({
         {/* 2. ACCESS CONTROL */}
         <div className="access-panel">
         <section className="ehr-section">
-          <h2>🔐 Request Access</h2>
+          <h2>🔐 Access Control</h2>
           <div className="ehr-access-grid">
             <div className="ehr-access-card green">
               <div className="card-icon">🏥</div>
@@ -330,7 +331,7 @@ const DoctorHomeTab = ({
                 onClick={() => handleAccessRequest("normal")}
                 disabled={loading.access || !selectedPatient}
               >
-                {loading.access ? "Processing..." : "Request Access"}
+                {loading.access ? "Processing..." : "Edit Details"}
               </button>
             </div>
 
