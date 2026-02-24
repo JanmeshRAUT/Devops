@@ -3,7 +3,8 @@ const express = require("express");
 const router = express.Router();
 const { verifyFirebaseToken } = require("../middleware");
 const { run, get, all } = require("../database");
-const { calculateTrustScore, getTrustLevel } = require("../trustLogic");
+const db = require("../database");
+const { calculateTrustScore, getTrustLevel, recalculateTrustScore } = require("../trustLogic");
 
 /**
  * Health check endpoint
@@ -311,6 +312,14 @@ router.post("/log_access", async (req, res) => {
     );
 
     console.log("Access log created");
+
+    // 🔄 Recalculate trust score after any logged event
+    const actorName = logData.doctor_name || logData.name;
+    if (actorName && actorName !== "N/A") {
+      recalculateTrustScore(actorName, db)
+        .catch(e => console.warn("Trust recalc error:", e.message));
+    }
+
     res.json({ success: true, message: "Access logged" });
   } catch (error) {
     console.error("Error logging access:", error.message);

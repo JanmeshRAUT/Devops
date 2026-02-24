@@ -31,7 +31,9 @@ const DoctorHomeTab = ({
   handleAccessRequest,
   accessResponse,
   setShowPDFModal,
-  handleDownloadPDF
+  handleDownloadPDF,
+  accessControl,
+  ipAddress
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -156,7 +158,8 @@ const DoctorHomeTab = ({
           patientData={accessResponse.patient_data}
           setShowPDFModal={setShowPDFModal}
           handleDownloadPDF={handleDownloadPDF}
-          isLoading={loading}
+          isLoading={loading.access}
+          accessMessage={accessResponse.message}
         />
       </div>
     );
@@ -405,49 +408,76 @@ const DoctorHomeTab = ({
         <div className="access-panel">
         <section className="ehr-section">
           <h2>🔐 Request Access</h2>
+          
+          {/* Restricted Access Warning */}
+          {accessControl?.isAccessBlocked && (
+            <div style={{
+              background: 'linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%)',
+              color: 'white',
+              padding: '1rem',
+              borderRadius: '8px',
+              marginBottom: '1rem',
+              border: '2px solid rgba(255, 255, 255, 0.3)'
+            }}>
+              <strong>🔒 Access Restricted</strong>
+              <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.95rem' }}>
+                {isInsideNetwork 
+                  ? '⚠️ Within Hospital Network - Admin Users Only'
+                  : '⚠️ Outside Hospital Network - Admin Users Only'}
+              </p>
+              <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.85rem', opacity: 0.9 }}>
+                Access requests are restricted to administrator accounts. Contact your system administrator if you believe this is an error.
+              </p>
+            </div>
+          )}
+
           <div className="ehr-access-grid">
 
             {/* Normal — in-network only */}
-            <div className={`ehr-access-card green ${!isInsideNetwork ? "disabled-card" : ""}`}>
+            <div className={`ehr-access-card green ${!isInsideNetwork ? "disabled-card" : ""} ${accessControl?.isAccessBlocked ? "disabled-card" : ""}`}>
               <div className="card-icon">🏥</div>
               <h3>Normal Access</h3>
               <p>Routine care access. Available <strong>only within hospital Wi-Fi</strong>. No justification required.</p>
               <button
                 className="btn btn-green btn-block"
                 onClick={() => handleAccessRequest("normal")}
-                disabled={loading.access || !selectedPatient || !isInsideNetwork}
+                disabled={loading.access || !selectedPatient || !isInsideNetwork || accessControl?.isAccessBlocked}
               >
-                {loading.access ? "Processing..." : "Edit Details"}
+                {loading.access ? "Processing..." : "Request Access"}
               </button>
               {!isInsideNetwork && <small className="card-warning">🏥 In-network only</small>}
+              {accessControl?.isAccessBlocked && <small className="card-warning">🔒 Admin only</small>}
             </div>
 
-            {/* Restricted — always justification modal */}
-            <div className="ehr-access-card blue">
+            {/* Restricted — outside network only, justification modal */}
+            <div className={`ehr-access-card blue ${isInsideNetwork ? "disabled-card" : ""} ${accessControl?.isAccessBlocked ? "disabled-card" : ""}`}>
               <div className="card-icon">🔒</div>
               <h3>Unrestricted Access</h3>
-              <p>Access beyond normal scope. Requires written justification. All access is audited.</p>
+              <p>Access beyond normal scope. Available <strong>only outside hospital Wi-Fi</strong>. Requires written justification.</p>
               <button
                 className="btn btn-blue btn-block"
                 onClick={() => { setRestrictedReason(""); setShowRestrictedModal(true); }}
-                disabled={loading.access || !selectedPatient}
+                disabled={loading.access || !selectedPatient || isInsideNetwork || accessControl?.isAccessBlocked}
               >
                 Request with Justification
               </button>
+              {isInsideNetwork && <small className="card-warning">🌐 External network only</small>}
+              {accessControl?.isAccessBlocked && <small className="card-warning">🔒 Admin only</small>}
             </div>
 
-            {/* Emergency — existing break-glass modal */}
-            <div className="ehr-access-card red">
+            {/* Emergency — always available, break-glass modal */}
+            <div className={`ehr-access-card red ${accessControl?.isAccessBlocked ? "disabled-card" : ""}`}>
               <div className="card-icon">🚨</div>
               <h3>Break-Glass</h3>
               <p>Emergency override for critical situations. Mandatory justification. Strictly audited.</p>
               <button
                 className="btn btn-emergency btn-block"
                 onClick={() => { setEmergencyReason(""); setShowEmergencyModal(true); }}
-                disabled={loading.access || !selectedPatient}
+                disabled={loading.access || !selectedPatient || accessControl?.isAccessBlocked}
               >
                 Break Glass
               </button>
+              {accessControl?.isAccessBlocked && <small className="card-warning">� Admin only</small>}
             </div>
 
           </div>

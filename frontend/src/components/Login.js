@@ -151,7 +151,11 @@ const Login = ({ onLogin }) => {
 			});
 
 			if (res.data.verified) {
-				onLogin(role, name);
+				// Store token in localStorage
+				if (res.data.token) {
+					localStorage.setItem("authToken", res.data.token);
+				}
+				onLogin(role, name, res.data.token);
 			} else {
 				setMessage("❌ " + (res.data.error || "Incorrect or expired OTP"));
 			}

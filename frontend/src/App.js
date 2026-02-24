@@ -26,7 +26,6 @@ function App() {
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
     const savedAdminToken = localStorage.getItem("adminToken");
-    const savedAdminUser = localStorage.getItem("adminUser"); 
     
     if (savedUser) {
       try {
@@ -45,10 +44,13 @@ function App() {
     setLoading(false);
   }, []);
 
-  const handleLogin = (role, name) => {
+  const handleLogin = (role, name, token) => {
     const userData = { name, role };
     setUser(userData);
     localStorage.setItem("user", JSON.stringify(userData));
+    if (token) {
+      localStorage.setItem("authToken", token);
+    }
   };
 
   const handleAdminLogin = (token) => {
@@ -59,6 +61,7 @@ function App() {
   const handleLogout = () => {
     setUser(null);
     localStorage.removeItem("user");
+    localStorage.removeItem("authToken");
   };
 
   const handleAdminLogout = () => {
@@ -81,11 +84,8 @@ function App() {
     );
   }
 
-  const ProtectedRoute = ({ children, requiredRole }) => {
+  const ProtectedRoute = ({ children, requiredRole, onLogout }) => {
     if (!user) {
-      return <Navigate to="/" replace />;
-    }
-    if (requiredRole && user.role.toLowerCase() !== requiredRole.toLowerCase()) {
       return <Navigate to="/" replace />;
     }
     return children;
@@ -145,7 +145,7 @@ function App() {
         <Route 
           path="/doctor" 
           element={
-            <ProtectedRoute requiredRole="doctor">
+            <ProtectedRoute requiredRole="doctor" onLogout={handleLogout}>
               <DoctorDashboard user={user} onLogout={handleLogout} />
             </ProtectedRoute>
           } 
@@ -155,7 +155,7 @@ function App() {
         <Route 
           path="/nurse" 
           element={
-            <ProtectedRoute requiredRole="nurse">
+            <ProtectedRoute requiredRole="nurse" onLogout={handleLogout}>
               <NurseDashboard user={user} onLogout={handleLogout} />
             </ProtectedRoute>
           } 
@@ -165,7 +165,7 @@ function App() {
         <Route 
           path="/patient" 
           element={
-            <ProtectedRoute requiredRole="patient">
+            <ProtectedRoute requiredRole="patient" onLogout={handleLogout}>
               <PatientDashboard user={user} onBack={handleLogout} />
             </ProtectedRoute>
           } 

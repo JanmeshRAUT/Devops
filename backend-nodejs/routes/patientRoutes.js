@@ -24,6 +24,18 @@ router.post("/add_patient", async (req, res) => {
       return res.status(400).json({ error: "Missing required fields: patientName, age, gender" });
     }
 
+    // ✅ Duplicate check — prevent same patient name from being registered twice
+    const existing = await get(
+      "SELECT id FROM patients WHERE LOWER(patientName) = LOWER(?) LIMIT 1",
+      [resolvedName]
+    );
+    if (existing) {
+      return res.status(409).json({
+        success: false,
+        error: `Patient "${resolvedName}" already exists in the system.`
+      });
+    }
+
     const createdAt = new Date().toISOString();
     const updatedAt = createdAt;
 
@@ -179,6 +191,7 @@ router.get("/doctor_patients/:name", async (req, res) => {
     const patients = await all(
       `SELECT * FROM patients 
        WHERE LOWER(doctor_name) = LOWER(?) OR LOWER(createdBy) = LOWER(?)
+       GROUP BY id
        ORDER BY createdAt DESC`,
       [name, name]
     );

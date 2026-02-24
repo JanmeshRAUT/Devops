@@ -46,8 +46,7 @@ function all(query, params = []) {
       if (err) reject(err);
       else resolve(rows || []);
     });
-  });
-}
+  });}
 
 /**
  * Initialize database schema

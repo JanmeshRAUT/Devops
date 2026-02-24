@@ -8,7 +8,6 @@ import DoctorPatientsTab from "./doctor_tabs/DoctorPatientsTab";
 import DoctorAccessLogsTab from "./doctor_tabs/DoctorAccessLogsTab";
 import DoctorPermissionsTab from "./doctor_tabs/DoctorPermissionsTab";
 import DoctorAlertsTab from "./doctor_tabs/DoctorAlertsTab";
-import { getAuth } from "firebase/auth";
 import {
   FaHospitalUser,
   FaUserMd,
@@ -21,8 +20,7 @@ import {
   FaClock,
   FaFilePdf,
   FaTimes,
-  FaCheckCircle,
-  FaSpinner,
+  FaCheckCircle
 } from "react-icons/fa";
 import "../css/Doctor.css";
 import "../css/Notifications.css";
@@ -31,31 +29,8 @@ import "../css/MedicalReport.css";
 const DoctorDashboard = ({ user, onLogout }) => {
   const navigate = useNavigate();
 
-  const getFirebaseToken = useCallback(async () => {
-    return new Promise((resolve) => {
-      const auth = getAuth();
-      if (auth.currentUser) {
-        auth.currentUser.getIdToken().then(resolve).catch((err) => {
-            console.error("Error getting immediate token:", err);
-            resolve(null);
-        });
-      } else {
-        const unsubscribe = auth.onAuthStateChanged(async (user) => {
-          unsubscribe();
-          if (user) {
-            try {
-              const token = await user.getIdToken();
-              resolve(token);
-            } catch (error) {
-              console.error("Error getting token after auth change:", error);
-              resolve(null);
-            }
-          } else {
-            resolve(null);
-          }
-        });
-      }
-    });
+  const getAuthToken = useCallback(() => {
+    return localStorage.getItem("authToken") || null;
   }, []);
 
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -69,12 +44,6 @@ const DoctorDashboard = ({ user, onLogout }) => {
   const [logs, setLogs] = useState([]);
   const [accessResponse, setAccessResponse] = useState(null);
   const [myPatients, setMyPatients] = useState([]);
-
-  const [recordForm, setRecordForm] = useState({
-    diagnosis: "",
-    treatment: "",
-    notes: "",
-  });
 
   const [loading, setLoading] = useState({
     trust: false,
@@ -259,8 +228,14 @@ const DoctorDashboard = ({ user, onLogout }) => {
     try {
       setLoading((prev) => ({ ...prev, access: true }));
       setError(null);
+      setAccessResponse(null); // Clear previous response
 
-      const token = await getFirebaseToken();
+      const token = getAuthToken();
+      if (!token) {
+        showToast("❌ Authentication failed. Please log in again.", "error");
+        return;
+      }
+
       const res = await axios.post(`${API_URL}/${type}_access`, {
         name: user.name,
         role: user.role,
@@ -272,14 +247,18 @@ const DoctorDashboard = ({ user, onLogout }) => {
         }
       });
 
+      // Handle both success and error responses
       if (res.data.success) {
         setAccessResponse(res.data);
         showToast(cleanToastMessage(res.data.message), "success");
-
       } else {
-        showToast(cleanToastMessage(res.data.message), "error");
+        // Server returned error in response
+        const errorMsg = res.data.error || res.data.message || "Access request could not be completed.";
+        setError(errorMsg);
+        showToast(`❌ ${cleanToastMessage(errorMsg)}`, "error");
       }
 
+      // Log the access attempt
       await axios.post(`${API_URL}/log_access`, {
         name: user.name,
         doctor_name: user.name,
@@ -289,15 +268,30 @@ const DoctorDashboard = ({ user, onLogout }) => {
         action: `${type.toUpperCase()} Access`,
         justification: reason,
         status: res.data.success ? "Granted" : "Denied",
-      });
+      }).catch(logErr => console.warn("Log error:", logErr.message));
 
       fetchTrustScore();
       fetchAccessLogs();
     } catch (error) {
       console.error("Access request error:", error);
-      const errorMsg = error.response?.data?.message || "❌ Access request failed.";
+      
+      // Extract error message from various sources
+      let errorMsg = "Access request failed. Please try again.";
+      
+      if (error.response?.status === 404) {
+        errorMsg = `Patient "${selectedPatient}" not found. Please check the patient name.`;
+      } else if (error.response?.status === 400) {
+        errorMsg = error.response?.data?.error || "Missing required information.";
+      } else if (error.response?.data?.error) {
+        errorMsg = error.response.data.error;
+      } else if (error.response?.data?.message) {
+        errorMsg = error.response.data.message;
+      } else if (error.message) {
+        errorMsg = `Network error: ${error.message}`;
+      }
+      
       setError(errorMsg);
-      showToast(cleanToastMessage(errorMsg), "error");
+      showToast(`❌ ${cleanToastMessage(errorMsg)}`, "error");
     } finally {
       setLoading((prev) => ({ ...prev, access: false }));
     }
@@ -319,7 +313,7 @@ const DoctorDashboard = ({ user, onLogout }) => {
   const handleDownloadPDF = async () => {
     if (accessResponse?.pdf_link) {
       try {
-        const token = await getFirebaseToken();
+        const token = getAuthToken();
         const link = resolvePdfLink(accessResponse.pdf_link);
 
         const urlObj = new URL(link);
@@ -345,18 +339,13 @@ const DoctorDashboard = ({ user, onLogout }) => {
     if (!patientName) {
       setSelectedPatient("");
       setSelectedPatientData(null);
-      setRecordForm({
-        diagnosis: "",
-        treatment: "",
-        notes: "",
-      });
       return;
     }
 
     setSelectedPatient(patientName);
 
     try {
-      const token = await getFirebaseToken();
+      const token = getAuthToken();
       const res = await axios.get(
         `${API_URL}/get_patient/${patientName.toLowerCase()}`,
         {
@@ -367,11 +356,6 @@ const DoctorDashboard = ({ user, onLogout }) => {
       );
       if (res.data.success && res.data.patient) {
         setSelectedPatientData(res.data.patient);
-        setRecordForm({
-          diagnosis: res.data.patient.diagnosis || "",
-          treatment: res.data.patient.treatment || "",
-          notes: res.data.patient.notes || "",
-        });
       } else {
         // API returned no detailed data — fall back to data already in allPatients list
         console.log(`⚠️ Patient ${patientName} not found via API. Using list data.`);
@@ -393,11 +377,6 @@ const DoctorDashboard = ({ user, onLogout }) => {
             notes: patientFromList.notes || ""
           };
           setSelectedPatientData(minimalData);
-          setRecordForm({
-            diagnosis: minimalData.diagnosis,
-            treatment: minimalData.treatment,
-            notes: minimalData.notes,
-          });
         } else {
           showToast("⚠️ Could not load patient details. Please try again.", "warning");
         }
@@ -423,11 +402,6 @@ const DoctorDashboard = ({ user, onLogout }) => {
           notes: patientFromList.notes || ""
         };
         setSelectedPatientData(fallbackData);
-        setRecordForm({
-          diagnosis: fallbackData.diagnosis,
-          treatment: fallbackData.treatment,
-          notes: fallbackData.notes,
-        });
         showToast("Using cached patient info.", "info");
       } else {
         showToast("❌ Error loading patient details", "error");
@@ -435,57 +409,7 @@ const DoctorDashboard = ({ user, onLogout }) => {
     }
   };
 
-  const handleUpdateRecords = async (e) => {
-    e.preventDefault();
-    
-    if (!selectedPatient) {
-      showToast("⚠️ Please select a patient first!", "warning");
-      return;
-    }
 
-    if (!recordForm.diagnosis.trim()) {
-      showToast("⚠️ Diagnosis is required!", "warning");
-      return;
-    }
-
-    try {
-    setLoading(prev => ({ ...prev, update: true }));
-
-      const token = await getFirebaseToken();
-      const res = await axios.post(`${API_URL}/update_patient`, {
-        patient_name: selectedPatient,
-        updated_by: user.name,
-        updates: {
-          diagnosis: recordForm.diagnosis.trim(),
-          treatment: recordForm.treatment.trim(),
-          notes: recordForm.notes.trim(),
-        }
-      }, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-
-      if (res.data.success) {
-        showToast(cleanToastMessage(res.data.message), "success");
-
-        if (res.data.patient) {
-          setSelectedPatientData(res.data.patient);
-        }
-
-        fetchMyPatients();
-        fetchAccessLogs(); 
-      } else {
-        showToast(cleanToastMessage(res.data.message), "error");
-      }
-    } catch (error) {
-      console.error("Update error:", error);
-      const errorMsg = error.response?.data?.message || "Failed to update patient records";
-      showToast("❌ " + errorMsg, "error");
-  } finally {
-    setLoading(prev => ({ ...prev, update: false }));
-  }
-};
 
   return (
     <div className="ehr-layout">

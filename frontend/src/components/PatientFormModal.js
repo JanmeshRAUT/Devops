@@ -1,24 +1,13 @@
 import React, { useState, useCallback } from "react";
 import axios from "axios";
 import { API_URL } from "../api";
-import { getAuth } from "firebase/auth";
 import { FaTimes, FaSpinner } from "react-icons/fa";
 import "../css/PatientFormModal.css";
 
 const PatientFormModal = ({ isOpen, onClose, doctorName, onSuccess }) => {
-  // ✅ Helper: Get Firebase ID token
-  const getFirebaseToken = useCallback(async () => {
-    try {
-      const auth = getAuth();
-      const currentUser = auth.currentUser;
-      if (currentUser) {
-        return await currentUser.getIdToken();
-      }
-      return null;
-    } catch (error) {
-      console.error("Error getting Firebase token:", error);
-      return null;
-    }
+  // ✅ Helper: Get stored auth token
+  const getAuthToken = useCallback(() => {
+    return localStorage.getItem("authToken") || null;
   }, []);
   const [formData, setFormData] = useState({
     patient_name: "",
@@ -52,7 +41,7 @@ const PatientFormModal = ({ isOpen, onClose, doctorName, onSuccess }) => {
 
     try {
       setLoading(true);
-      const token = await getFirebaseToken();
+      const token = getAuthToken();
       const res = await axios.post(`${API_URL}/add_patient`, {
         doctor_name: doctorName,
         ...formData
@@ -80,7 +69,7 @@ const PatientFormModal = ({ isOpen, onClose, doctorName, onSuccess }) => {
         }, 1500);
       }
     } catch (error) {
-      setMessage("❌ " + (error.response?.data?.message || "Error adding patient"));
+      setMessage("❌ " + (error.response?.data?.error || error.response?.data?.message || "Error adding patient"));
     } finally {
       setLoading(false);
     }

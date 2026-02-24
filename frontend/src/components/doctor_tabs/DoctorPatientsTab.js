@@ -1,10 +1,14 @@
-import React from 'react';
-import { 
-  FaUserInjured, 
-  FaSync, 
-  FaSpinner, 
-  FaArrowLeft,
-  FaCheckCircle 
+import React, { useState } from 'react';
+import axios from 'axios';
+import { API_URL } from '../../api';
+import {
+  FaUserInjured,
+  FaSync,
+  FaSpinner,
+  FaEdit,
+  FaTimes,
+  FaSave,
+  FaLock
 } from 'react-icons/fa';
 import "../../css/DoctorPatientsTab.css";
 
@@ -13,15 +17,133 @@ const fmt = (d) =>
     ? new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
     : "—";
 
+/* ─── Inline Edit Modal ─────────────────────────────────── */
+const EditPatientModal = ({ patient, onClose, onSaved }) => {
+  const [form, setForm] = useState({
+    age:       patient.age       || "",
+    gender:    patient.gender    || "Male",
+    diagnosis: patient.diagnosis || "",
+    treatment: patient.treatment || "",
+    notes:     patient.notes     || "",
+  });
+  const [saving, setSaving] = useState(false);
+  const [error,  setError]  = useState("");
+
+  const handleChange = (e) =>
+    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    try {
+      setSaving(true);
+      setError("");
+      const token = localStorage.getItem("authToken") || "";
+      const res = await axios.post(
+        `${API_URL}/update_patient`,
+        { patientId: patient.id, updates: form },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (res.data.success) {
+        onSaved();
+        onClose();
+      } else {
+        setError(res.data.error || "Update failed.");
+      }
+    } catch (err) {
+      setError(err.response?.data?.error || "Network error. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div
+        className="modal-content patient-form-modal"
+        style={{ maxWidth: 520 }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="modal-header">
+          <h3><FaEdit style={{ marginRight: "0.4rem" }} />Edit — {patient.patientName || patient.name}</h3>
+          <button className="modal-close-btn" onClick={onClose}><FaTimes /></button>
+        </div>
+
+        <form className="patient-form" onSubmit={handleSave}>
+          <div className="form-row">
+            <div className="form-group">
+              <label>Age</label>
+              <input
+                type="number" name="age" min="1" max="120"
+                value={form.age} onChange={handleChange}
+                placeholder="Age"
+              />
+            </div>
+            <div className="form-group">
+              <label>Gender</label>
+              <select name="gender" value={form.gender} onChange={handleChange}>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label>Primary Diagnosis</label>
+            <input
+              type="text" name="diagnosis"
+              value={form.diagnosis} onChange={handleChange}
+              placeholder="e.g. Type 2 Diabetes"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Treatment Plan</label>
+            <textarea
+              name="treatment" rows="3"
+              value={form.treatment} onChange={handleChange}
+              placeholder="Current treatment details…"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Clinical Notes</label>
+            <textarea
+              name="notes" rows="3"
+              value={form.notes} onChange={handleChange}
+              placeholder="Additional clinical observations…"
+            />
+          </div>
+
+          {error && <p className="form-message error">{error}</p>}
+
+          <div className="modal-footer">
+            <button type="button" className="btn btn-gray" onClick={onClose}>Cancel</button>
+            <button type="submit" className="btn btn-blue" disabled={saving}>
+              {saving
+                ? <><FaSpinner className="spin-icon" /> Saving…</>
+                : <><FaSave /> Save Changes</>
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+/* ─── Main Tab ──────────────────────────────────────────── */
 const DoctorPatientsTab = ({
   myPatients,
   loading,
   selectedPatient,
   handleSelectPatient,
   fetchMyPatients,
-  setActiveTab,          // ← used to redirect to Dashboard
+  setActiveTab,
   isInsideNetwork,
 }) => {
+  const [editingPatient, setEditingPatient] = useState(null);
+
   return (
     <div className="patients-content-wrapper">
 
@@ -70,21 +192,17 @@ const DoctorPatientsTab = ({
               </thead>
               <tbody>
                 {myPatients.map((p, idx) => {
-                  const name   = p.patientName || p.name || "—";
-                  const email  = p.patient_email || p.email || "—";
+                  const name  = p.patientName || p.name || "—";
+                  const email = p.patient_email || p.email || "—";
                   const isSelected = selectedPatient === name;
 
                   return (
-                    <tr
-                      key={p.id || idx}
-                      className={isSelected ? "row-selected" : ""}
-                    >
+                    <tr key={p.id || idx} className={isSelected ? "row-selected" : ""}>
+
                       {/* Patient identity */}
                       <td>
                         <div className="patient-cell">
-                          <div className="patient-avatar-sm">
-                            {name[0].toUpperCase()}
-                          </div>
+                          <div className="patient-avatar-sm">{name[0].toUpperCase()}</div>
                           <div>
                             <div className="patient-name">{name}</div>
                             <div className="patient-email">{email}</div>
@@ -114,9 +232,7 @@ const DoctorPatientsTab = ({
 
                       {/* Last updated */}
                       <td>
-                        <div className="date-cell">
-                          {fmt(p.updatedAt || p.last_updated_at)}
-                        </div>
+                        <div className="date-cell">{fmt(p.updatedAt || p.last_updated_at)}</div>
                       </td>
 
                       {/* Status */}
@@ -128,17 +244,25 @@ const DoctorPatientsTab = ({
                         </div>
                       </td>
 
-                      {/* Action — opens Dashboard with patient pre-selected */}
+                      {/* Action — Edit (in-network only) */}
                       <td className="col-actions">
                         <button
-                          className="btn-details"
-                          onClick={() => handleViewInDashboard(name)}
-                          title="Open in Request Access tab"
+                          className={`btn-details ${!isInsideNetwork ? "btn-disabled-network" : ""}`}
+                          onClick={() => isInsideNetwork && setEditingPatient(p)}
+                          disabled={!isInsideNetwork}
+                          title={
+                            isInsideNetwork
+                              ? "Edit patient record"
+                              : "🔒 Only available inside hospital network"
+                          }
                         >
-                          <FaExternalLinkAlt style={{ fontSize: "0.7rem" }} />
-                          Request Access
+                          {isInsideNetwork
+                            ? <><FaEdit style={{ fontSize: "0.75rem" }} /> Edit</>
+                            : <><FaLock style={{ fontSize: "0.7rem" }} /> Edit</>
+                          }
                         </button>
                       </td>
+
                     </tr>
                   );
                 })}
@@ -153,6 +277,16 @@ const DoctorPatientsTab = ({
           </div>
         )}
       </div>
+
+      {/* ── Edit Modal ── */}
+      {editingPatient && (
+        <EditPatientModal
+          patient={editingPatient}
+          onClose={() => setEditingPatient(null)}
+          onSaved={fetchMyPatients}
+        />
+      )}
+
     </div>
   );
 };

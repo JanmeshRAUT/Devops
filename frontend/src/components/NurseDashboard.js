@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { API_URL } from "../api";
 import { useNavigate } from "react-router-dom";
-import { getAuth } from "firebase/auth";
+
 import NurseHomeTab from "./nurse_tabs/NurseHomeTab";
 import NursePatientsTab from "./nurse_tabs/NursePatientsTab";
 import NurseAccessLogsTab from "./nurse_tabs/NurseAccessLogsTab";
@@ -14,42 +14,18 @@ import {
   FaUserInjured,
   FaGlobeAsia,
   FaClock,
-  FaShieldAlt,
   FaCheckCircle,
   FaTimes,
 } from "react-icons/fa";
 import "../css/NurseDashboard.css";
 import "../css/Notifications.css";
 
+
 const NurseDashboard = ({ user, onLogout }) => {
   const navigate = useNavigate();
 
-  const getFirebaseToken = useCallback(async () => {
-    return new Promise((resolve) => {
-      const auth = getAuth();
-      if (auth.currentUser) {
-        auth.currentUser.getIdToken().then(resolve).catch((err) => {
-            console.error("Error getting immediate token:", err);
-            resolve(null);
-        });
-      } else {
-        const unsubscribe = auth.onAuthStateChanged(async (user) => {
-          unsubscribe();
-          if (user) {
-            try {
-              const token = await user.getIdToken();
-              resolve(token);
-            } catch (error) {
-              console.error("Error getting token after auth change:", error);
-              resolve(null);
-            }
-          } else {
-             
-            resolve(null);
-          }
-        });
-      }
-    });
+  const getAuthToken = useCallback(() => {
+    return localStorage.getItem("authToken") || null;
   }, []);
 
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -63,6 +39,8 @@ const NurseDashboard = ({ user, onLogout }) => {
   const [lastLogin, setLastLogin] = useState("");
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
   const [accessGranted, setAccessGranted] = useState(false);
+
+
   const [accessExpiryTime, setAccessExpiryTime] = useState(null);
 
   const cleanToastMessage = (msg) => {
@@ -95,7 +73,7 @@ const NurseDashboard = ({ user, onLogout }) => {
 
   const fetchPatients = useCallback(async () => {
     try {
-      const token = await getFirebaseToken();
+      const token = getAuthToken();
       if (!token) return;
       const res = await axios.get(`${API_URL}/all_patients`, {
         headers: {
@@ -107,7 +85,7 @@ const NurseDashboard = ({ user, onLogout }) => {
       console.error("Error fetching patients:", err);
       setPatients([]);
     }
-  }, [getFirebaseToken]);
+  }, [getAuthToken]);
 
   const fetchAccessLogs = useCallback(async () => {
     if (!user?.name) return;
@@ -191,7 +169,7 @@ const NurseDashboard = ({ user, onLogout }) => {
     }
 
     try {
-      const token = await getFirebaseToken();
+      const token = getAuthToken();
       const res = await axios.post(
         `${API_URL}/request_temp_access`,
         {
@@ -251,6 +229,7 @@ const NurseDashboard = ({ user, onLogout }) => {
 
   return (
     <div className="ehr-layout">
+
       {}
       <aside className="ehr-sidebar">
         <div className="ehr-sidebar-header">
@@ -281,9 +260,7 @@ const NurseDashboard = ({ user, onLogout }) => {
             >
               <FaClipboardList /> Access Logs
             </li>
-            <li>
-              <FaShieldAlt /> Approvals
-            </li>
+
           </ul>
         </nav>
 

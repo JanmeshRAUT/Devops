@@ -2,14 +2,15 @@ import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { API_URL } from "../api";
+
 import "../css/Patient.css";
 import "../css/Notifications.css";
+
 import {
   FaUserMd,
   FaClock,
   FaNotesMedical,
   FaFileAlt,
-  FaShieldAlt,
   FaHistory,
   FaCheckCircle,
   FaTimesCircle,
@@ -23,6 +24,8 @@ const PatientDashboard = ({ user, onBack }) => {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+
 
   const fetchLogs = useCallback(async () => {
     if (!user?.name) return;
@@ -139,15 +142,7 @@ const PatientDashboard = ({ user, onBack }) => {
             </span>
           </div>
         </div>
-        <div className="stat-item">
-          <div className="stat-icon">
-            <FaShieldAlt />
-          </div>
-          <div className="stat-content">
-            <span className="stat-label">Data Privacy</span>
-            <span className="stat-value">Protected</span>
-          </div>
-        </div>
+
       </section>
 
       {}

@@ -185,10 +185,27 @@
   color: #ef4444;
 }
 
-.disabled-card {
-  opacity: 0.5;
-  pointer-events: none;
-  filter: grayscale(0.8);
+.card-warning {
+  display: block;
+  color: #ff6b6b;
+  font-weight: 600;
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+}
+
+/* Disabled Button Styling */
+.ehr-access-card button:disabled {
+  opacity: 0.6 !important;
+  cursor: not-allowed !important;
+  background-color: #ccc !important;
+  color: #666 !important;
+  border-color: #aaa !important;
+  transform: none !important;
+}
+
+.ehr-access-card button:disabled:hover {
+  background-color: #ccc !important;
+  transform: none !important;
 }
 
 .card-icon {

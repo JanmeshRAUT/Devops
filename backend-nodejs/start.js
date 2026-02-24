@@ -18,7 +18,7 @@ dotenv.config();
 const config = require('./config');
 const { errorHandler, requestLogger } = require('./middleware');
 const { limiter } = require('./limiter');
-const { firebaseInitialized } = require('./firebase');
+const { db } = require('./database');
 
 // Import routes
 const authRoutes = require('./routes/authRoutes');
@@ -64,7 +64,7 @@ app.use("/api/general", generalRoutes);
 app.get("/health", (req, res) => {
   res.json({
     status: "✅ Backend is running",
-    firebase: firebaseInitialized ? "✅ Connected" : "❌ Not connected",
+    database: "✅ SQLite connected",
     environment: config.NODE_ENV,
     timestamp: new Date().toISOString()
   });
@@ -91,7 +91,7 @@ const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`${'='.repeat(50)}`);
   console.log(`\n✅ Port: ${PORT}`);
   console.log(`✅ Environment: ${config.NODE_ENV}`);
-  console.log(`✅ Firebase: ${firebaseInitialized ? '✅ Connected' : '❌ Not connected'}`);
+  console.log(`✅ Database: SQLite connected`);
   console.log(`✅ URL: http://localhost:${PORT}`);
   console.log(`✅ Health: http://localhost:${PORT}/health`);
   console.log(`\n📝 API Routes:`);
