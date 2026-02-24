@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { API_URL } from "../api";
 import "../css/Login.css";
 
 const AdminLogin = ({ onLogin }) => {
@@ -18,7 +19,7 @@ const AdminLogin = ({ onLogin }) => {
     try {
       // ✅ Use Static Database authentication (Firebase disabled)
       const response = await axios.post(
-        "http://localhost:5000/admin/login",
+        `${API_URL}/admin/login`,
         {
           email: email.toLowerCase(),
           password: password

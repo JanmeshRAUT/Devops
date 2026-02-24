@@ -94,9 +94,8 @@ const Login = ({ onLogin }) => {
 		try {
 			setLoading(true);
 			setMessage("");
-
 			setMessage("🔍 Verifying credentials with database...");
-			
+
 			const res = await axios.post(`${API_URL}/user_login`, {
 				name,
 				role,
@@ -104,13 +103,13 @@ const Login = ({ onLogin }) => {
 			});
 
 			if (res.data.success) {
-				setSessionId(res.data.session_id);
+				// Backend returns 'sessionId' (camelCase) which equals the user's email
+				setSessionId(res.data.sessionId || res.data.session_id || email);
 				setStep(2);
 				setTimer(180);
 				setOtp("");
 				setMessage((res.data.message || "✅ OTP sent to your email"));
 			} else {
-				
 				const errorMsg = res.data.error || "Login failed";
 				if (errorMsg.includes("mismatch")) {
 					setMessage("❌ Name or role does not match our records. Please verify and try again.");
@@ -124,7 +123,6 @@ const Login = ({ onLogin }) => {
 			console.error("Login error:", error);
 			if (error.response?.data?.error) {
 				const errorMsg = error.response.data.error;
-				
 				if (errorMsg.includes("mismatch") || errorMsg.includes("Expected:")) {
 					setMessage("❌ " + errorMsg);
 				} else if (errorMsg.includes("not found")) {
@@ -148,7 +146,7 @@ const Login = ({ onLogin }) => {
 			setLoading(true);
 			setMessage("");
 			const res = await axios.post(`${API_URL}/verify_otp`, {
-				session_id: sessionId,
+				email: sessionId,   // sessionId holds the user's email
 				otp,
 			});
 
@@ -170,7 +168,7 @@ const Login = ({ onLogin }) => {
 			setLoading(true);
 			setMessage("");
 			const res = await axios.post(`${API_URL}/resend_otp`, {
-				session_id: sessionId,
+				email: sessionId,   // sessionId holds the user's email
 			});
 			if (res.data.sent) {
 				setTimer(180);

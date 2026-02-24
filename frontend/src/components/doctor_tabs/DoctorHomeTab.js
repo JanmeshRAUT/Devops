@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { API_URL } from '../../api';
 import { 
   FaUserMd, 
   FaSpinner,
@@ -90,7 +91,7 @@ const DoctorHomeTab = ({
 
     debounceRef.current = setTimeout(async () => {
         try {
-            const res = await fetch("http://localhost:5000/api/access/precheck", {
+            const res = await fetch(`${API_URL}/api/access/precheck`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ justification: emergencyReason })

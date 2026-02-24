@@ -1,14 +1,14 @@
 // database.js
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
-const fs = require('fs');
+const sqlite3 = require("sqlite3").verbose();
+const path = require("path");
+const fs = require("fs");
 
-const dbPath = path.join(__dirname, 'ehr.db');
+const dbPath = path.join(__dirname, "ehr.db");
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
-    console.error('❌ Database connection error:', err.message);
+    console.error("❌ Database connection error:", err.message);
   } else {
-    console.log('✅ SQLite database connected');
+    console.log("✅ SQLite database connected");
     initializeDatabase();
   }
 });
@@ -18,7 +18,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
  */
 function run(query, params = []) {
   return new Promise((resolve, reject) => {
-    db.run(query, params, function(err) {
+    db.run(query, params, function (err) {
       if (err) reject(err);
       else resolve(this);
     });
@@ -81,9 +81,28 @@ function initializeDatabase() {
         emergencyContact TEXT,
         createdBy TEXT,
         createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+        updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+        patient_email TEXT,
+        diagnosis TEXT,
+        treatment TEXT,
+        notes TEXT,
+        doctor_name TEXT
       )
     `);
+
+    // Migrate patients table: add extended fields if missing
+    const patientMigrations = [
+      `ALTER TABLE patients ADD COLUMN patient_email TEXT`,
+      `ALTER TABLE patients ADD COLUMN diagnosis TEXT`,
+      `ALTER TABLE patients ADD COLUMN treatment TEXT`,
+      `ALTER TABLE patients ADD COLUMN notes TEXT`,
+      `ALTER TABLE patients ADD COLUMN doctor_name TEXT`,
+    ];
+    patientMigrations.forEach((sql) => {
+      db.run(sql, [], () => {
+        /* ignore "duplicate column" errors on existing DB */
+      });
+    });
 
     // Access requests table
     db.run(`
@@ -119,22 +138,40 @@ function initializeDatabase() {
       )
     `);
 
-    // Access logs table
+    // Access logs table - full schema with all frontend fields
     db.run(`
       CREATE TABLE IF NOT EXISTS access_logs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         role TEXT NOT NULL,
         userId TEXT,
-        patientId INTEGER,
+        patientId TEXT,
         action TEXT NOT NULL,
         reason TEXT,
         details TEXT,
         ip TEXT,
         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (patientId) REFERENCES patients(id)
+        doctor_name TEXT,
+        doctor_role TEXT,
+        patient_name TEXT,
+        justification TEXT,
+        status TEXT DEFAULT 'Success'
       )
     `);
+
+    // Migrate access_logs: add missing columns to existing DB gracefully
+    const logMigrations = [
+      `ALTER TABLE access_logs ADD COLUMN doctor_name TEXT`,
+      `ALTER TABLE access_logs ADD COLUMN doctor_role TEXT`,
+      `ALTER TABLE access_logs ADD COLUMN patient_name TEXT`,
+      `ALTER TABLE access_logs ADD COLUMN justification TEXT`,
+      `ALTER TABLE access_logs ADD COLUMN status TEXT DEFAULT 'Success'`,
+    ];
+    logMigrations.forEach((sql) => {
+      db.run(sql, [], () => {
+        /* ignore "duplicate column" errors on existing DB */
+      });
+    });
 
     // OTP sessions table
     db.run(`
@@ -150,7 +187,7 @@ function initializeDatabase() {
       )
     `);
 
-    console.log('✅ Database schema initialized');
+    console.log("✅ Database schema initialized");
   });
 }
 
@@ -160,9 +197,9 @@ function initializeDatabase() {
 function closeDatabase() {
   db.close((err) => {
     if (err) {
-      console.error('❌ Error closing database:', err.message);
+      console.error("❌ Error closing database:", err.message);
     } else {
-      console.log('✅ Database connection closed');
+      console.log("✅ Database connection closed");
     }
   });
 }
@@ -172,5 +209,5 @@ module.exports = {
   run,
   get,
   all,
-  closeDatabase
+  closeDatabase,
 };

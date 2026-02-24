@@ -216,22 +216,24 @@ router.post("/nurse_access", async (req, res) => {
 });
 
 /**
- * Access precheck endpoint (GET /api/access/precheck)
+ * Access precheck endpoint — supports both GET (query params) and POST (body)
+ * GET /api/access/precheck?patientId=X&userId=Y  → check if user has access
+ * POST /api/access/precheck { justification } → evaluate justification quality (AI pre-check)
  */
 router.get("/precheck", async (req, res) => {
   try {
     const { patientId, userId } = req.query;
-    
+
     if (!patientId || !userId) {
       return res.status(400).json({ error: "Missing required fields: patientId, userId" });
     }
-    
+
     const hasAccess = await get(
       `SELECT id FROM access_requests 
-       WHERE patientId = ? AND userId = ? AND status = 'approved' LIMIT 1`,
-      [patientId, userId]
+       WHERE patientId = ? AND (requesterId = ? OR userId = ?) AND status = 'approved' LIMIT 1`,
+      [patientId, userId, userId]
     );
-    
+
     res.json({
       success: true,
       hasAccess: !!hasAccess,
@@ -240,6 +242,107 @@ router.get("/precheck", async (req, res) => {
   } catch (error) {
     console.error("Error checking access:", error.message);
     res.status(500).json({ error: "Failed to check access" });
+  }
+});
+
+/**
+ * POST /precheck — Evaluate justification text for AI pre-check
+ * Used by DoctorHomeTab emergency access modal
+ */
+router.post("/precheck", (req, res) => {
+  try {
+    const { justification } = req.body;
+
+    if (!justification || !justification.trim()) {
+      return res.json({ status: "invalid", message: "Justification cannot be empty" });
+    }
+
+    const text = justification.trim().toLowerCase();
+    const wordCount = text.split(/\s+/).filter(Boolean).length;
+
+    // Simple rule-based AI pre-check
+    const medicalKeywords = [
+      "emergency", "critical", "urgent", "life-threatening", "cardiac", "stroke",
+      "unconscious", "bleeding", "accident", "trauma", "respiratory", "failure",
+      "overdose", "allergic", "seizure", "patient", "treatment", "diagnosis"
+    ];
+    const weakWords = ["need", "want", "check", "look", "see", "access"];
+
+    const hasMedicalContext = medicalKeywords.some(kw => text.includes(kw));
+    const isOnlyWeak = weakWords.some(kw => text === kw) && wordCount <= 3;
+
+    if (wordCount < 3 || isOnlyWeak) {
+      return res.json({
+        status: "invalid",
+        message: "Too brief. Please provide a detailed clinical reason."
+      });
+    }
+
+    if (hasMedicalContext && wordCount >= 5) {
+      return res.json({
+        status: "valid",
+        message: "✅ Justification looks valid. You may proceed."
+      });
+    }
+
+    return res.json({
+      status: "weak",
+      message: "⚠️ Justification seems weak. Include specific clinical details."
+    });
+  } catch (error) {
+    console.error("Precheck error:", error.message);
+    res.status(500).json({ error: "Failed to evaluate justification" });
+  }
+});
+
+/**
+ * Request temporary nurse access (POST /request_temp_access)
+ * Used by NurseDashboard handleAccessRequest
+ */
+router.post("/request_temp_access", async (req, res) => {
+  try {
+    const { name, role, patient_name, patientId } = req.body;
+    const requesterName = name;
+    const resolvedPatient = patient_name || patientId;
+
+    if (!requesterName || !resolvedPatient) {
+      return res.status(400).json({ error: "Missing required fields: name, patient_name" });
+    }
+
+    const createdAt = new Date().toISOString();
+    // Temp access expires in 30 minutes
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+
+    // Look up patient record
+    const { get: dbGet, run: dbRun } = require("../database");
+    const patient = await dbGet(
+      "SELECT * FROM patients WHERE LOWER(patientName) = LOWER(?) LIMIT 1",
+      [resolvedPatient]
+    );
+
+    // Log the temporary access event
+    await dbRun(
+      `INSERT INTO access_logs 
+       (name, role, patientId, action, reason, ip, timestamp, doctor_name, doctor_role, patient_name, justification, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        requesterName, role || "nurse", resolvedPatient,
+        "TEMP_ACCESS", "Nurse temporary access granted",
+        req.ip || "unknown", createdAt,
+        requesterName, role || "nurse",
+        resolvedPatient, "Temporary access requested by nurse", "Granted"
+      ]
+    );
+
+    res.json({
+      success: true,
+      message: `✅ Temporary access granted for ${resolvedPatient}. Expires in 30 minutes.`,
+      patient_data: patient || { name: resolvedPatient },
+      expiresAt
+    });
+  } catch (error) {
+    console.error("Error granting temp access:", error.message);
+    res.status(500).json({ error: "Failed to grant temporary access" });
   }
 });
 

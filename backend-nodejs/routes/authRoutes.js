@@ -21,10 +21,16 @@ router.post("/admin/login", async (req, res) => {
     }
     
     if (email !== config.ADMIN_EMAIL) {
-      return res.status(403).json({ success: false, error: "❌ Not an admin" });
+      return res.status(403).json({ success: false, error: "❌ Invalid admin credentials" });
     }
-    
+
+    // Check password against ADMIN_PASSWORD env variable
+    if (config.ADMIN_PASSWORD && password !== config.ADMIN_PASSWORD) {
+      return res.status(403).json({ success: false, error: "❌ Invalid admin credentials" });
+    }
+
     console.log(`✅ Admin login verified: ${email}`);
+
     
     const token = generateToken({ email, role: "admin" });
     res.json({ 
@@ -96,7 +102,9 @@ router.post("/user_login", strictLimiter, async (req, res) => {
  */
 router.post("/verify_otp", async (req, res) => {
   try {
-    const { email, otp } = req.body;
+    // Accept both 'email' (new) and 'session_id' (legacy frontend) — session_id equals the user's email
+    const { otp } = req.body;
+    const email = req.body.email || req.body.session_id;
     
     if (!email || !otp) {
       return res.status(400).json({ error: "❌ Missing email or OTP" });
@@ -152,6 +160,7 @@ router.post("/verify_otp", async (req, res) => {
       console.log(`✅ User ${email} verified`);
       res.json({
         success: true,
+        verified: true,    // field frontend checks
         message: "✅ OTP verified",
         token,
         user: {
@@ -193,7 +202,8 @@ router.post("/logout", async (req, res) => {
  */
 router.post("/resend_otp", otpLimiter, async (req, res) => {
   try {
-    const { email } = req.body;
+    // Accept both 'email' (new) and 'session_id' (legacy frontend)
+    const email = req.body.email || req.body.session_id;
     
     if (!email) {
       return res.status(400).json({ error: "❌ Email is required" });
@@ -217,7 +227,7 @@ router.post("/resend_otp", otpLimiter, async (req, res) => {
     }
     
     console.log(`✅ OTP resent to ${email}`);
-    res.json({ success: true, message: "✅ OTP resent to email" });
+    res.json({ success: true, sent: true, message: "✅ OTP resent to email" });
   } catch (error) {
     console.error("❌ Resend OTP error:", error.message);
     res.status(500).json({ error: "❌ Internal server error" });

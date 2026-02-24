@@ -1,6 +1,7 @@
 // config.js
 module.exports = {
   ADMIN_EMAIL: process.env.ADMIN_EMAIL || "admin@ehr.com",
+  ADMIN_PASSWORD: process.env.ADMIN_PASSWORD || "Admin@123",
   TRUSTED_NETWORK: process.env.TRUSTED_NETWORK || "192.168.1.0/24",
   TRUST_THRESHOLD: parseInt(process.env.TRUST_THRESHOLD) || 40,
   
