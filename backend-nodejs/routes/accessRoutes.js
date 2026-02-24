@@ -174,4 +174,119 @@ router.get("/patient/:patientId", verifyFirebaseToken, async (req, res) => {
   }
 });
 
+/**
+ * Doctor access request (POST /doctor_access)
+ */
+router.post("/doctor_access", async (req, res) => {
+  try {
+    const { name, patientId, reason } = req.body;
+    
+    if (!name || !patientId) {
+      return res.status(400).json({ error: "❌ Missing required fields: name, patientId" });
+    }
+    
+    if (!firebaseInitialized) {
+      return res.status(500).json({ error: "❌ Firebase not initialized" });
+    }
+    
+    const accessRef = db.collection("access_requests").doc();
+    const accessData = {
+      name,
+      role: "doctor",
+      patientId,
+      reason: reason || "",
+      status: "pending",
+      createdAt: new Date(),
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
+    };
+    
+    await accessRef.set(accessData);
+    
+    console.log(`✅ Doctor access request created: ${accessRef.id}`);
+    res.json({
+      success: true,
+      message: "✅ Access request submitted",
+      requestId: accessRef.id
+    });
+  } catch (error) {
+    console.error("❌ Error creating doctor access request:", error.message);
+    res.status(500).json({ error: "❌ Failed to create access request" });
+  }
+});
+
+/**
+ * Nurse access request (POST /nurse_access)
+ */
+router.post("/nurse_access", async (req, res) => {
+  try {
+    const { name, patientId, reason } = req.body;
+    
+    if (!name || !patientId) {
+      return res.status(400).json({ error: "❌ Missing required fields: name, patientId" });
+    }
+    
+    if (!firebaseInitialized) {
+      return res.status(500).json({ error: "❌ Firebase not initialized" });
+    }
+    
+    const accessRef = db.collection("access_requests").doc();
+    const accessData = {
+      name,
+      role: "nurse",
+      patientId,
+      reason: reason || "",
+      status: "pending",
+      createdAt: new Date(),
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
+    };
+    
+    await accessRef.set(accessData);
+    
+    console.log(`✅ Nurse access request created: ${accessRef.id}`);
+    res.json({
+      success: true,
+      message: "✅ Access request submitted",
+      requestId: accessRef.id
+    });
+  } catch (error) {
+    console.error("❌ Error creating nurse access request:", error.message);
+    res.status(500).json({ error: "❌ Failed to create access request" });
+  }
+});
+
+/**
+ * Access precheck endpoint (GET /api/access/precheck)
+ */
+router.get("/precheck", async (req, res) => {
+  try {
+    const { patientId, userId } = req.query;
+    
+    if (!patientId || !userId) {
+      return res.status(400).json({ error: "❌ Missing required fields: patientId, userId" });
+    }
+    
+    if (!firebaseInitialized) {
+      return res.status(500).json({ error: "❌ Firebase not initialized" });
+    }
+    
+    // Check if user has active access
+    const snapshot = await db.collection("access_requests")
+      .where("patientId", "==", patientId)
+      .where("userId", "==", userId)
+      .where("status", "==", "approved")
+      .get();
+    
+    const hasAccess = !snapshot.empty;
+    
+    res.json({
+      success: true,
+      hasAccess,
+      message: hasAccess ? "✅ Access granted" : "❌ No active access"
+    });
+  } catch (error) {
+    console.error("❌ Error checking access:", error.message);
+    res.status(500).json({ error: "❌ Failed to check access" });
+  }
+});
+
 module.exports = router;

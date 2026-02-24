@@ -103,4 +103,29 @@ router.delete("/account", verifyFirebaseToken, async (req, res) => {
   }
 });
 
+/**
+ * Delete user by email (DELETE /delete_user/:email)
+ */
+router.delete("/delete_user/:email", async (req, res) => {
+  try {
+    const { email } = req.params;
+    
+    if (!email) {
+      return res.status(400).json({ error: "❌ Email is required" });
+    }
+    
+    if (!firebaseInitialized) {
+      return res.status(500).json({ error: "❌ Firebase not initialized" });
+    }
+    
+    await db.collection("users").doc(email).delete();
+    
+    console.log(`✅ User ${email} deleted`);
+    res.json({ success: true, message: "✅ User deleted" });
+  } catch (error) {
+    console.error("❌ Error deleting user:", error.message);
+    res.status(500).json({ error: "❌ Failed to delete user" });
+  }
+});
+
 module.exports = router;

@@ -57,6 +57,13 @@ app.use("/api/access", accessRoutes);
 app.use("/api/logs", logsRoutes);
 app.use("/api/general", generalRoutes);
 
+// ✅ Direct route aliases (for frontend direct calls without /api prefix)
+app.use("/auth", authRoutes);
+// Mount general routes at root so direct endpoints work (like /ip_check, /get_all_users, etc.)
+app.use("/", generalRoutes);
+app.use("/", patientRoutes);
+app.use("/", accessRoutes);
+
 // ✅ Health check endpoint
 app.get("/health", (req, res) => {
   res.json({

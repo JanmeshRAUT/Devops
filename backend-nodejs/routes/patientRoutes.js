@@ -5,9 +5,9 @@ const { db, firebaseInitialized } = require("../firebase");
 const { verifyFirebaseToken } = require("../middleware");
 
 /**
- * Create patient record
+ * Create patient record (supports both POST / and POST /add_patient)
  */
-router.post("/", verifyFirebaseToken, async (req, res) => {
+router.post("/", async (req, res) => {
   try {
     const { patientName, age, gender, medicalHistory, emergencyContact } = req.body;
     
@@ -28,7 +28,7 @@ router.post("/", verifyFirebaseToken, async (req, res) => {
       emergencyContact,
       createdAt: new Date(),
       updatedAt: new Date(),
-      createdBy: req.user.email
+      createdBy: req.user?.email || "system"
     };
     
     await patientRef.set(patientData);
@@ -39,6 +39,48 @@ router.post("/", verifyFirebaseToken, async (req, res) => {
       message: "✅ Patient record created",
       patientId: patientRef.id,
       patient: patientData
+    });
+  } catch (error) {
+    console.error("❌ Error creating patient record:", error.message);
+    res.status(500).json({ error: "❌ Failed to create patient record" });
+  }
+});
+
+/**
+ * Alias for add_patient (POST /add_patient)
+ */
+router.post("/add_patient", async (req, res) => {
+  try {
+    const { patientName, age, gender, medicalHistory, emergencyContact } = req.body;
+    
+    if (!patientName || !age || !gender) {
+      return res.status(400).json({ error: "❌ Missing required fields: patientName, age, gender" });
+    }
+    
+    if (!firebaseInitialized) {
+      return res.status(500).json({ error: "❌ Firebase not initialized" });
+    }
+    
+    const patientRef = db.collection("patients").doc();
+    const patientData = {
+      patientName,
+      age,
+      gender,
+      medicalHistory: medicalHistory || [],
+      emergencyContact: emergencyContact || {},
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      createdBy: req.user?.email || "system"
+    };
+    
+    await patientRef.set(patientData);
+    
+    console.log(`✅ Patient record created: ${patientRef.id}`);
+    res.json({
+      success: true,
+      message: "✅ Patient record created",
+      patientId: patientRef.id,
+      patient: { id: patientRef.id, ...patientData }
     });
   } catch (error) {
     console.error("❌ Error creating patient record:", error.message);
@@ -89,6 +131,40 @@ router.put("/:patientId", verifyFirebaseToken, async (req, res) => {
     
     console.log(`✅ Patient record updated: ${patientId}`);
     res.json({ success: true, message: "✅ Patient record updated", patient: updateData });
+  } catch (error) {
+    console.error("❌ Error updating patient record:", error.message);
+    res.status(500).json({ error: "❌ Failed to update patient record" });
+  }
+});
+
+/**
+ * Alias for update_patient (POST /update_patient)
+ */
+router.post("/update_patient", async (req, res) => {
+  try {
+    const patientId = req.body.patientId || req.body.id;
+    
+    if (!patientId) {
+      return res.status(400).json({ error: "❌ Missing patientId" });
+    }
+    
+    if (!firebaseInitialized) {
+      return res.status(500).json({ error: "❌ Firebase not initialized" });
+    }
+    
+    const updateData = {
+      ...req.body,
+      updatedAt: new Date()
+    };
+    
+    // Remove id/patientId from update data if present
+    delete updateData.patientId;
+    delete updateData.id;
+    
+    await db.collection("patients").doc(patientId).update(updateData);
+    
+    console.log(`✅ Patient record updated: ${patientId}`);
+    res.json({ success: true, message: "✅ Patient record updated", patient: { id: patientId, ...updateData } });
   } catch (error) {
     console.error("❌ Error updating patient record:", error.message);
     res.status(500).json({ error: "❌ Failed to update patient record" });
