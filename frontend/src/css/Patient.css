@@ -1252,6 +1252,43 @@ body {
   }
 }
 
+/* Additional layout tweaks: keep dashboard content contained and responsive */
+html, body {
+  overflow-x: hidden;
+}
+
+.patient-dashboard {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+  .patient-dashboard {
+    padding: 1rem;
+  }
+  .patient-header {
+    padding: 1.5rem;
+  }
+  .stats-bar {
+    grid-template-columns: 1fr;
+  }
+  .access-log-container {
+    grid-template-columns: 1fr;
+  }
+}
+
+.logs-section {
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+}
+
+/* keep header visible when scrolling through many logs */
+.patient-header {
+  position: sticky !important;
+  top: 0;
+  z-index: 15;
+}
+
 /* ============== PRINT STYLES ============== */
 @media print {
   .back-button {
