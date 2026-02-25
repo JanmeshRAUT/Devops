@@ -21,18 +21,16 @@ const AdminDashboard = () => {
     }
   }, [navigate]);
 
-const fetchUsers = async (token) => {
-  try {
-    const response = await axios.get(`${API_URL}/users`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    console.log("✅ Users fetched:", response.data);
-    setUsers(response.data.users || []);
-  } catch (err) {
-    console.error("❌ Error fetching users:", err.response?.data || err);
-  }
-};
-
+  const fetchUsers = async (token) => {
+    try {
+      const response = await axios.get(`${API_URL}/users`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setUsers(response.data.users || []);
+    } catch (err) {
+      console.error("Error fetching users:", err.response?.data || err);
+    }
+  };
 
   const handleAssignRole = async () => {
     const token = localStorage.getItem("adminToken");
@@ -49,12 +47,12 @@ const fetchUsers = async (token) => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      alert(response.data.message);
+      alert(response.data.message || "Role assigned");
       setName("");
       setEmail("");
       fetchUsers(token);
     } catch (error) {
-      alert(error.response?.data?.error || "❌ Error assigning role");
+      alert(error.response?.data?.error || "Error assigning role");
     }
   };
 
@@ -64,67 +62,100 @@ const fetchUsers = async (token) => {
   };
 
   return (
-    <div className="admin-container">
+    <div className="admin-main">
       <header className="admin-header">
-        <h1>MedTrust AI – Admin Panel</h1>
-        <button className="logout-btn" onClick={handleLogout}>
-          Logout
-        </button>
+        <div className="header-left">
+          <div className="current-page-title">MedTrust AI</div>
+          <div className="header-sub">Admin Panel</div>
+        </div>
+        <div>
+          <button className="med-btn med-btn-outline logout-btn" onClick={handleLogout}>
+            Logout
+          </button>
+        </div>
       </header>
 
-      <div className="role-box">
-        <h2>Assign Role to User</h2>
-        <input
-          type="text"
-          placeholder="Full Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-        <input
-          type="email"
-          placeholder="User Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <select value={role} onChange={(e) => setRole(e.target.value)}>
-          <option value="doctor">Doctor</option>
-          <option value="nurse">Nurse</option>
-          <option value="patient">Patient</option>
-        </select>
-        <button onClick={handleAssignRole}>Assign Role</button>
-      </div>
+      <main className="admin-section">
+        <div className="admin-section-header">
+          <h2>Assign Role to User</h2>
+          <p className="section-description">Quickly assign roles to registered users.</p>
+        </div>
 
-      <div className="user-table-container">
-        <h2>Registered Users</h2>
-        <table className="user-table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Role</th>
-              <th>Trust Score</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.length > 0 ? (
-              users.map((u, i) => (
-                <tr key={i}>
-                  <td>{u.name}</td>
-                  <td>{u.email}</td>
-                  <td className="capitalize">{u.role}</td>
-                  <td>{u.trust_score || "-"}</td>
+        <div className="admin-content-area">
+          <div className="role-box">
+            <input
+              className="med-search-input"
+              type="text"
+              placeholder="Full Name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+
+            <input
+              className="med-search-input"
+              type="email"
+              placeholder="User Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+
+            <select
+              className="med-date-input"
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+            >
+              <option value="doctor">Doctor</option>
+              <option value="nurse">Nurse</option>
+              <option value="patient">Patient</option>
+              <option value="admin">Admin</option>
+            </select>
+
+            <button className="med-btn med-btn-primary" onClick={handleAssignRole}>
+              Assign Role
+            </button>
+          </div>
+        </div>
+
+        <div className="admin-table-wrapper">
+          <div className="admin-section-header" style={{borderBottom: 'none'}}>
+            <h2>Registered Users</h2>
+          </div>
+          <div className="admin-table-wrapper">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Trust Score</th>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="4" className="no-users">
-                  No users found
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+              </thead>
+              <tbody>
+                {users.length > 0 ? (
+                  users.map((u, i) => (
+                    <tr key={i}>
+                      <td>
+                        <div className="user-name">{u.name}</div>
+                      </td>
+                      <td>{u.email}</td>
+                      <td>
+                        <span className={`role-badge role-${(u.role || 'patient')}`}>{(u.role || '-')}</span>
+                      </td>
+                      <td>{u.trust_score ?? '-'}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="4" className="no-users">
+                      No users found
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </main>
     </div>
   );
 };
