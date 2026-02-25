@@ -2,7 +2,7 @@ import React from "react";
 import { FaUserInjured } from "react-icons/fa";
 import "../../css/NurseAccessLogsTab.css";
 
-const NursePatientsTab = ({ patients }) => {
+const NursePatientsTab = ({ patients, isInsideNetwork }) => {
   return (
     <div className="logs-content-wrapper">
        <div className="logs-tab-header">
@@ -12,7 +12,12 @@ const NursePatientsTab = ({ patients }) => {
           </div>
           <div className="logs-header-title">
              <h2>All Patients</h2>
-             <p>Directory of all registered patients in the system</p>
+             <p>
+               Directory of all registered patients in the system
+               {!isInsideNetwork && (
+                 <span className="network-warning-inline"> · ⚠️ External network — view only</span>
+               )}
+             </p>
           </div>
         </div>
        </div>

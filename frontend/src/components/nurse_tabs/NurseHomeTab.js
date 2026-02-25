@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { API_URL } from '../../api';
 import { 
   FaUserInjured, 
   FaSearch, 
@@ -31,6 +32,44 @@ const NurseHomeTab = ({
   const [searchTerm, setSearchTerm] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const searchRef = useRef(null);
+
+  const [emergencyReason, setEmergencyReason] = useState('');
+  const [showEmergencyModal, setShowEmergencyModal] = useState(false);
+  const [showRestrictedModal, setShowRestrictedModal] = useState(false);
+  const [restrictedReason, setRestrictedReason] = useState('');
+  const [checkStatus, setCheckStatus] = useState({ message: "", color: "#94a3b8" });
+  const debounceRef = useRef(null);
+
+  useEffect(() => {
+    if (!emergencyReason.trim()) {
+        setCheckStatus({ message: "", color: "#94a3b8" });
+        return;
+    }
+
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    setCheckStatus({ message: "Checking...", color: "#64748b" });
+
+    debounceRef.current = setTimeout(async () => {
+        try {
+            const res = await fetch(`${API_URL}/api/access/precheck`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ justification: emergencyReason })
+            });
+            const data = await res.json();
+            
+            if (data.status === "valid") {
+                setCheckStatus({ message: data.message, color: "#16a34a" });
+            } else if (data.status === "weak") {
+                setCheckStatus({ message: data.message, color: "#ca8a04" });
+            } else {
+                setCheckStatus({ message: data.message, color: "#dc2626" });
+            }
+        } catch (err) {
+            setCheckStatus({ message: "Offline check unavailable", color: "#94a3b8" });
+        }
+    }, 600);
+  }, [emergencyReason]);
 
   // Close search dropdown when clicking outside
   useEffect(() => {
@@ -208,30 +247,52 @@ const NurseHomeTab = ({
              <div className="access-panel fade-in-up">
                  {!accessGranted ? (
                     /* REQUEST CARD */
-                     <section className="ehr-section request-card-section">
-                        <div className="request-card-header">
-                            <h3><FaHospitalUser /> Access Request</h3>
-                            <p>You are requesting access to <strong>{selectedPatient}</strong>.</p>
-                        </div>
-                        <div className="request-card-body">
-                             <div className="nurse-access-info">
-                                <p>This will grant you <strong>Temporary Access (30 mins)</strong>.</p>
-                                <p className="network-status">
-                                    Network Status: 
-                                    <span className={isInsideNetwork ? "text-green" : "text-red"}>
-                                       {isInsideNetwork ? " Inside Hospital Network ✅" : " Outside Network ❌"}
-                                    </span>
-                                </p>
-                             </div>
-                             <div className="request-actions">
-                                 <button 
-                                   className="btn btn-blue btn-lg"
-                                   onClick={handleAccessRequest}
-                                   disabled={!isInsideNetwork}
-                                 >
-                                    {isInsideNetwork ? "Request 30-Min Access" : "Unavailable (Outside Network)"}
-                                 </button>
-                             </div>
+                     <section className="ehr-section">
+                        <h2>🔐 Request Access</h2>
+
+                        <div className="ehr-access-grid">
+                          {/* Normal — in-network only */}
+                          <div className={`ehr-access-card green ${!isInsideNetwork ? "disabled-card" : ""}`}>
+                            <div className="card-icon">🏥</div>
+                            <h3>Temporary Access</h3>
+                            <p>Routine care access format (30 mins). Available <strong>only within hospital Wi-Fi</strong>. No justification required.</p>
+                            <button
+                              className="btn btn-green btn-block"
+                              onClick={() => handleAccessRequest("request_temp")}
+                              disabled={!isInsideNetwork}
+                            >
+                              Request Temp Access
+                            </button>
+                            {!isInsideNetwork && <small className="card-warning">🏥 In-network only</small>}
+                          </div>
+
+                          {/* Restricted — outside network only, justification modal */}
+                          <div className={`ehr-access-card blue ${isInsideNetwork ? "disabled-card" : ""}`}>
+                            <div className="card-icon">🔒</div>
+                            <h3>Unrestricted Access</h3>
+                            <p>Access beyond normal scope. Available <strong>only outside hospital Wi-Fi</strong>. Requires written justification.</p>
+                            <button
+                              className="btn btn-blue btn-block"
+                              onClick={() => { setRestrictedReason(""); setShowRestrictedModal(true); }}
+                              disabled={isInsideNetwork}
+                            >
+                              Request with Justification
+                            </button>
+                            {isInsideNetwork && <small className="card-warning">🌐 External network only</small>}
+                          </div>
+
+                          {/* Emergency — always available, break-glass modal */}
+                          <div className={`ehr-access-card red`}>
+                            <div className="card-icon">🚨</div>
+                            <h3>Break-Glass</h3>
+                            <p>Emergency override for critical situations. Mandatory justification. Strictly audited.</p>
+                            <button
+                              className="btn btn-emergency btn-block"
+                              onClick={() => { setEmergencyReason(""); setShowEmergencyModal(true); }}
+                            >
+                              Break Glass
+                            </button>
+                          </div>
                         </div>
                      </section>
                  ) : (
@@ -327,6 +388,90 @@ const NurseHomeTab = ({
          )}
 
       </div>
+
+      {/* ── Emergency (Break-Glass) Justification Modal ── */}
+      {showEmergencyModal && (
+        <div className="modal-overlay">
+          <div className="modal-content emergency-modal">
+            <div className="modal-header emergency-header">
+              <h2>🚨 Break-Glass Emergency Access</h2>
+              <button className="close-btn" onClick={() => setShowEmergencyModal(false)}>×</button>
+            </div>
+            <div className="modal-body">
+              <p className="warning-text">
+                You are about to break the glass for <strong>{selectedPatient}</strong>.
+                This action is <strong>permanently logged</strong> and reviewed by administration.
+              </p>
+              <label>Mandatory Clinical Justification:</label>
+              <textarea
+                className="emergency-reason-input"
+                placeholder="Describe the emergency and clinical reason for access..."
+                value={emergencyReason}
+                onChange={(e) => setEmergencyReason(e.target.value)}
+                autoFocus
+              />
+              <p style={{ color: checkStatus.color, fontSize: "0.85rem", fontWeight: "600", marginTop: "0.25rem", minHeight: "1.25rem" }}>
+                {checkStatus.message}
+              </p>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-gray" onClick={() => setShowEmergencyModal(false)}>Cancel</button>
+              <button
+                className="btn btn-emergency"
+                onClick={() => {
+                  handleAccessRequest("emergency", emergencyReason);
+                  setShowEmergencyModal(false);
+                  setEmergencyReason("");
+                }}
+                disabled={!emergencyReason.trim()}
+              >
+                🚨 Confirm & Break Glass
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Restricted / Unrestricted Justification Modal ── */}
+      {showRestrictedModal && (
+        <div className="modal-overlay">
+          <div className="modal-content emergency-modal">
+            <div className="modal-header" style={{ background: "linear-gradient(135deg,#1d4ed8,#3b82f6)", color: "white", padding: "1rem 1.5rem", display: "flex", justifyContent: "space-between", alignItems: "center", borderRadius: "12px 12px 0 0" }}>
+              <h2 style={{ margin: 0, fontSize: "1.1rem" }}>🔒 Unrestricted Access — Justification Required</h2>
+              <button className="close-btn" onClick={() => setShowRestrictedModal(false)}>×</button>
+            </div>
+            <div className="modal-body">
+              <p className="warning-text" style={{ borderColor: "#3b82f6", background: "#eff6ff", color: "#1d4ed8" }}>
+                You are requesting <strong>unrestricted access</strong> to records of <strong>{selectedPatient}</strong>.
+                A written justification is mandatory and will be retained in the audit log.
+              </p>
+              <label>Justification <span style={{ color: "#ef4444" }}>*</span></label>
+              <textarea
+                className="emergency-reason-input"
+                placeholder="State the clinical reason why unrestricted access is needed..."
+                value={restrictedReason}
+                onChange={(e) => setRestrictedReason(e.target.value)}
+                autoFocus
+              />
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-gray" onClick={() => setShowRestrictedModal(false)}>Cancel</button>
+              <button
+                className="btn btn-blue"
+                onClick={() => {
+                  handleAccessRequest("restricted", restrictedReason);
+                  setShowRestrictedModal(false);
+                  setRestrictedReason("");
+                }}
+                disabled={!restrictedReason.trim()}
+              >
+                🔒 Confirm & Request Access
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
