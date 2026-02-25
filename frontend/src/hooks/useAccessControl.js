@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { API_URL } from '../api';
 
 /**
  * Hook to check if user is within trusted network
@@ -15,7 +16,7 @@ export const useNetworkStatus = () => {
   useEffect(() => {
     const checkNetwork = async () => {
       try {
-        const response = await fetch('/api/general/ip_check');
+        const response = await fetch(`${API_URL}/api/general/ip_check`);
         const data = await response.json();
         
         setNetworkStatus({

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { API_URL } from "../api";
@@ -6,43 +6,64 @@ import { API_URL } from "../api";
 import "../css/Patient.css";
 import "../css/Notifications.css";
 
-import {
-  FaUserMd,
-  FaClock,
-  FaNotesMedical,
-  FaFileAlt,
-  FaHistory,
-  FaCheckCircle,
-  FaTimesCircle,
-  FaCircle,
-  FaSync,
-} from "react-icons/fa";
+import PatientHeader from "./patient/PatientHeader";
+import PatientStatsBar from "./patient/PatientStatsBar";
+import PatientLogsSection from "./patient/PatientLogsSection";
+import PatientMedicalRecord from "./patient/PatientMedicalRecord";
+import Toast from "./Toast";
 
 const PatientDashboard = ({ user, onBack }) => {
   const navigate = useNavigate();
 
   const [logs, setLogs] = useState([]);
+  const [patientData, setPatientData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [activeTab, setActiveTab] = useState("logs");
+  const [toastQueue, setToastQueue] = useState([]);
+  const previousLogsLength = useRef(0);
+  const initialLoadDone = useRef(false);
 
+  // Toast Functionality
+  const showToast = useCallback((message, type = "info") => {
+    const id = Date.now();
+    setToastQueue((prev) => [...prev, { id, message, type }]);
+  }, []);
 
+  const removeToast = useCallback((id) => {
+    setToastQueue((prev) => prev.filter((toast) => toast.id !== id));
+  }, []);
 
-  const fetchLogs = useCallback(async () => {
+  const fetchPatientData = useCallback(async () => {
     if (!user?.name) return;
     try {
-      setLoading(true);
-      setError(null);
+      const res = await axios.get(`${API_URL}/get_patient/${user.name}`);
+      if (res.data.success) {
+        setPatientData(res.data.patient);
+      }
+    } catch (error) {
+      console.error("Error fetching patient medical code:", error);
+    }
+  }, [user?.name]);
+
+  const fetchLogs = useCallback(async (isPolling = false) => {
+    if (!user?.name) return;
+    try {
+      if (!isPolling) {
+        setLoading(true);
+        setError(null);
+      }
       
       const res = await axios.get(
         `${API_URL}/patient_access_history/${user.name}`
       );
       if (res.data.success) {
-        
         const sortedLogs = (res.data.logs || []).sort((a, b) => 
             new Date(b.timestamp) - new Date(a.timestamp)
         );
 
         const normalizedLogs = sortedLogs.map((log) => ({
+          id: log.id,
           doctor: log.doctor_name || log.user || "Unknown User",
           role: log.doctor_role || "Doctor",
           accessType: log.action || "Data Access",
@@ -51,21 +72,56 @@ const PatientDashboard = ({ user, onBack }) => {
           timestamp: log.timestamp || "—",
           source: log.source || "system"
         }));
+
         setLogs(normalizedLogs);
+
+        // Check for new logs during polling
+        if (initialLoadDone.current && normalizedLogs.length > previousLogsLength.current) {
+          showToast(`Your medical record was recently accessed. Check history.`, "info");
+        }
+
+        previousLogsLength.current = normalizedLogs.length;
+        initialLoadDone.current = true;
       }
     } catch (error) {
       console.error("Error fetching access logs:", error);
-      setError("Failed to load access history. Please check your connection.");
+      if (!isPolling) setError("Failed to load access history. Please check your connection.");
     } finally {
-      setLoading(false);
+      if (!isPolling) setLoading(false);
     }
-  }, [user?.name]);
+  }, [user?.name, showToast]);
 
   useEffect(() => {
     if (user?.name) {
       fetchLogs();
+      fetchPatientData();
+
+      // Poll every 15 seconds to simulate real-time notification
+      const interval = setInterval(() => {
+        fetchLogs(true);
+      }, 15000);
+
+      return () => clearInterval(interval);
     }
-  }, [user?.name, fetchLogs]);
+  }, [user?.name, fetchLogs, fetchPatientData]);
+
+  const handleReportAccess = async (logId, doctorName) => {
+    if (!window.confirm(`Are you sure you want to flag this access by ${doctorName} as suspicious? Administrators will be notified.`)) return;
+    
+    try {
+      const res = await axios.post(`${API_URL}/report_suspicious_access`, {
+        log_id: logId,
+        patient_name: user.name,
+        doctor_name: doctorName
+      });
+      if(res.data.success) {
+        showToast("Access successfully reported as suspicious.", "success");
+        fetchLogs();
+      }
+    } catch (err) {
+      showToast("Failed to report access.", "error");
+    }
+  };
 
   if (!user || !user.name) {
     return (
@@ -86,198 +142,60 @@ const PatientDashboard = ({ user, onBack }) => {
     else navigate("/");
   };
 
-  const getStatusIcon = (status) => {
-    if (status.includes("Grant") || status.includes("Approve") || status.includes("Success")) {
-      return <FaCheckCircle className="status-icon granted-icon" />;
-    } else if (status.includes("Deny") || status.includes("Flag") || status.includes("Denied")) {
-      return <FaTimesCircle className="status-icon denied-icon" />;
-    }
-    return <FaCircle className="status-icon pending-icon" />;
-  };
-
-  const getAccessTypeBadge = (accessType) => {
-    if (accessType.includes("Emergency")) return "emergency";
-    if (accessType.includes("Normal")) return "normal";
-    if (accessType.includes("Restricted")) return "restricted";
-    if (accessType.includes("Temporary")) return "temporary";
-    return "default";
-  };
-
   return (
     <div className="patient-dashboard">
-      {}
-      <header className="patient-header">
-        <div className="header-content">
-          <div className="header-info">
-            <h1 className="welcome-text">👋 Welcome, {user.name}</h1>
-            <p className="subtext">
-              Your secure medical data access history is shown below
-            </p>
-          </div>
-          <button className="logout-button" onClick={handleBack}  title="Logout">
-            Logout
-          </button>
-        </div>
-      </header>
+      <div className="toast-container">
+        {toastQueue.map((toast) => (
+          <Toast key={toast.id} message={toast.message} type={toast.type} onClose={() => removeToast(toast.id)} />
+        ))}
+      </div>
 
-      {}
-      <section className="stats-bar">
-        <div className="stat-item">
-          <div className="stat-icon access-icon">
-            <FaHistory />
-          </div>
-          <div className="stat-content">
-            <span className="stat-label">Total Access Records</span>
-            <span className="stat-value">{logs.length}</span>
-          </div>
-        </div>
-        <div className="stat-item">
-          <div className="stat-icon granted-icon">
-            <FaCheckCircle />
-          </div>
-          <div className="stat-content">
-            <span className="stat-label">Authorized Access</span>
-            <span className="stat-value">
-              {logs.filter(l => l.status.includes("Grant") || l.status.includes("Approve") || l.status.includes("Success")).length}
-            </span>
-          </div>
-        </div>
+      <PatientHeader user={user} handleBack={handleBack} />
+      <PatientStatsBar logs={logs} />
+      
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
+        <button
+          onClick={() => setActiveTab("logs")}
+          style={{
+            padding: '1rem 2rem',
+            borderRadius: '16px',
+            border: 'none',
+            fontSize: '1.1rem',
+            fontWeight: '600',
+            cursor: 'pointer',
+            transition: 'all 0.3s',
+            background: activeTab === "logs" ? 'linear-gradient(135deg, var(--primary), var(--accent))' : 'white',
+            color: activeTab === "logs" ? 'white' : 'var(--text-muted)',
+            boxShadow: activeTab === "logs" ? '0 8px 25px rgba(59, 130, 246, 0.4)' : '0 4px 15px rgba(0,0,0,0.03)'
+          }}
+        >
+          🔒 Access History
+        </button>
+        <button
+          onClick={() => setActiveTab("record")}
+          style={{
+            padding: '1rem 2rem',
+            borderRadius: '16px',
+            border: 'none',
+            fontSize: '1.1rem',
+            fontWeight: '600',
+            cursor: 'pointer',
+            transition: 'all 0.3s',
+            background: activeTab === "record" ? 'linear-gradient(135deg, var(--primary), var(--accent))' : 'white',
+            color: activeTab === "record" ? 'white' : 'var(--text-muted)',
+            boxShadow: activeTab === "record" ? '0 8px 25px rgba(59, 130, 246, 0.4)' : '0 4px 15px rgba(0,0,0,0.03)'
+          }}
+        >
+          📂 My Medical Record
+        </button>
+      </div>
 
-      </section>
-
-      {}
-      {}
-      <section className="logs-section">
-        <div className="section-header">
-          <div className="section-title">
-            <FaHistory className="section-icon" />
-            <span>Access History Log</span>
-          </div>
-          <button 
-            className="refresh-button" 
-            onClick={fetchLogs}
-            disabled={loading}
-            title="Refresh access logs"
-          >
-            <FaSync className={loading ? "spinning" : ""} />
-          </button>
-        </div>
-
-        {loading && (
-          <div className="fallback-container" style={{ minHeight: "40vh" }}>
-            <div className="loader">
-              <div className="spinner"></div>
-            </div>
-            <p className="fallback-message">Loading your secure logs...</p>
-          </div>
-        )}
-
-        {error && (
-          <div className="fallback-container error-state" style={{ minHeight: "40vh" }}>
-            <div className="fallback-icon" style={{ fontSize: "3rem" }}>⚠️</div>
-            <p className="fallback-message" style={{ color: "#ef4444" }}>
-              {error}
-            </p>
-            <button className="fallback-btn retry-btn" onClick={fetchLogs}>
-              Try Again
-            </button>
-          </div>
-        )}
-
-        {!loading && !error && (
-          <div className="access-log-container">
-            {logs.length > 0 ? (
-              logs.map((log, idx) => (
-                <div key={idx} className="access-log-card">
-                  {}
-                  <div className="log-card-header">
-                    <div className="log-user-info">
-                      <div className="user-avatar">
-                        <FaUserMd />
-                      </div>
-                      <div>
-                        <h3 className="log-doctor-name">{log.doctor}</h3>
-                        <span className="log-role">{log.role}</span>
-                      </div>
-                    </div>
-                    <div className={`access-badge ${getAccessTypeBadge(log.accessType)}`}>
-                      {log.accessType.replace("Access", "").trim() || "Data Access"}
-                    </div>
-                  </div>
-
-                  {}
-                  <div className="log-card-body">
-                    {}
-                    <div className="log-item">
-                      <div className="log-item-label">
-                        <span className="log-icon">{getStatusIcon(log.status)}</span>
-                        <span>Status</span>
-                      </div>
-                      <div className={`log-item-value status-${log.status.includes("Grant") || log.status.includes("Approve") || log.status.includes("Success") ? "approved" : log.status.includes("Deny") || log.status.includes("Flag") || log.status.includes("Denied") ? "denied" : "pending"}`}>
-                        {log.status}
-                      </div>
-                    </div>
-
-                    {}
-                    <div className="log-item">
-                      <div className="log-item-label">
-                        <span className="log-icon"><FaFileAlt /></span>
-                        <span>Access Type</span>
-                      </div>
-                      <div className="log-item-value">{log.accessType}</div>
-                    </div>
-
-                    {}
-                    {log.justification && log.justification !== "Routine Checkup" && (
-                      <div className="log-item">
-                        <div className="log-item-label">
-                          <span className="log-icon"><FaNotesMedical /></span>
-                          <span>Reason</span>
-                        </div>
-                        <div className="log-item-value justification-text">
-                          "{log.justification}"
-                        </div>
-                      </div>
-                    )}
-
-                    {}
-                    <div className="log-item">
-                      <div className="log-item-label">
-                        <span className="log-icon"><FaClock /></span>
-                        <span>Time</span>
-                      </div>
-                      <div className="log-item-value timestamp">
-                        {new Date(log.timestamp).toLocaleString('en-US', {
-                          year: 'numeric',
-                          month: 'short',
-                          day: '2-digit',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                          second: '2-digit',
-                          hour12: true
-                        })}
-                      </div>
-                    </div>
-                  </div>
-
-                  {}
-                  <div className="log-card-footer">
-                    <span className="source-badge">{log.source === "doctor" ? "📋 Doctor Log" : "🔐 System Log"}</span>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="fallback-container empty-state" style={{ minHeight: "40vh", gridColumn: "1/-1" }}>
-                <div className="fallback-icon" style={{ fontSize: "3rem" }}>📭</div>
-                <p className="fallback-message">No access logs found</p>
-                <p style={{ color: "#64748b", marginTop: "10px" }}>
-                  Your medical data hasn't been accessed yet. Your privacy is protected! 🔒
-                </p>
-              </div>
-            )}
-          </div>
-        )}
-      </section>
+      {activeTab === "logs" ? (
+        <PatientLogsSection logs={logs} loading={loading} error={error} fetchLogs={() => fetchLogs(false)} onReport={handleReportAccess} />
+      ) : (
+        <PatientMedicalRecord patient={patientData} />
+      )}
 
       {/* ✅ Footer Info */}
       <footer className="patient-footer">

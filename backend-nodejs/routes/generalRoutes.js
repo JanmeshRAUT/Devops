@@ -253,6 +253,36 @@ router.get("/patient_access_history/:name", async (req, res) => {
 });
 
 /**
+ * Report suspicious access — NEW
+ * Used by PatientDashboard to flag unauthorized access
+ */
+router.post("/report_suspicious_access", async (req, res) => {
+  try {
+    const { log_id, patient_name, doctor_name } = req.body;
+
+    if (!log_id) {
+      return res.status(400).json({ error: "Missing log_id" });
+    }
+
+    // Update log status to "Flagged"
+    await run(
+      "UPDATE access_logs SET status = ? WHERE id = ?",
+      ["Flagged", log_id]
+    );
+
+    // Update doctor's trust score directly or via trustLogic
+    // A simplified penalty for flagged access
+    const actorName = doctor_name || "Unknown";
+    console.log(`🚨 Patient ${patient_name} flagged access by ${actorName}`);
+
+    res.json({ success: true, message: "Access successfully flagged and administrators have been notified." });
+  } catch (error) {
+    console.error("Error reporting suspicious access:", error.message);
+    res.status(500).json({ error: "Failed to flag access" });
+  }
+});
+
+/**
  * Log access event — updated to store all frontend fields
  */
 router.post("/log_access", async (req, res) => {

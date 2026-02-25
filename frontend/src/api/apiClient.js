@@ -1,9 +1,10 @@
 import axios from "axios";
 import { useNotification } from "../context/NotificationContext";
+import { API_URL } from "../api";
 
 export const createApiClient = (showNotification) => {
   const client = axios.create({
-    baseURL: process.env.REACT_APP_API_URL || "http://localhost:5000",
+    baseURL: API_URL,
   });
 
   client.interceptors.request.use(
