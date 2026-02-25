@@ -146,7 +146,7 @@ const NurseDashboard = ({ user, onLogout }) => {
     );
   }
 
-  const handleAccessRequest = async () => {
+  const handleAccessRequest = async (type, reason = "") => {
     if (!selectedPatient) {
       setToast({
         show: true,
@@ -157,25 +157,15 @@ const NurseDashboard = ({ user, onLogout }) => {
       return;
     }
 
-    if (!isInsideNetwork) {
-      setToast({
-        show: true,
-        message:
-          "Temporary Access can only be requested inside the hospital network!",
-        type: "error",
-      });
-      setTimeout(() => setToast({ show: false, message: "", type: "" }), 4000);
-      return;
-    }
-
     try {
       const token = getAuthToken();
       const res = await axios.post(
-        `${API_URL}/request_temp_access`,
+        `${API_URL}/${type}_access`,
         {
           name: user.name,
           role: user.role,
           patient_name: selectedPatient,
+          justification: reason,
         },
         {
           headers: {
@@ -184,11 +174,11 @@ const NurseDashboard = ({ user, onLogout }) => {
         }
       );
 
-      let type = res.data.success ? "success" : "error";
+      let resType = res.data.success ? "success" : "error";
       setToast({
         show: true,
         message: cleanToastMessage(res.data.message),
-        type,
+        type: resType,
       });
 
       if (res.data.success && res.data.patient_data) {
@@ -204,7 +194,7 @@ const NurseDashboard = ({ user, onLogout }) => {
     } catch (error) {
       setToast({
         show: true,
-        message: "Failed to request temporary access.",
+        message: "Failed to request access.",
         type: "error",
       });
       setTimeout(() => setToast({ show: false, message: "", type: "" }), 4000);
@@ -328,7 +318,14 @@ const NurseDashboard = ({ user, onLogout }) => {
 
           {}
           {activeTab === "patients" && (
-            <NursePatientsTab patients={patients} />
+            <>
+              {!isInsideNetwork && (
+                <div className="error-banner" style={{ margin: "1rem 1.5rem 0", borderRadius: "8px", background: "#fee2e2", color: "#b91c1c", padding: "10px", display: "flex", gap: "10px", alignItems: "center" }}>
+                  <FaCheckCircle /> ⚠️ You are accessing from outside the hospital network ({ipAddress}). View-only mode — some actions may be restricted.
+                </div>
+              )}
+              <NursePatientsTab patients={patients} isInsideNetwork={isInsideNetwork} />
+            </>
           )}
 
           {}
