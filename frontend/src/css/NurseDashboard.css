@@ -88,28 +88,37 @@ body {
 /* --- Sidebar --- */
 .ehr-sidebar {
   width: var(--sidebar-width);
-  height: 100%;
   background: linear-gradient(180deg, var(--primary-900) 0%, var(--primary-800) 100%);
   color: white;
   display: flex;
   flex-direction: column;
-  flex-shrink: 0;
+  position: fixed;
+  height: 100%;
   z-index: 50;
-  box-shadow: 4px 0 24px rgba(0,0,0,0.15);
+  box-shadow: 4px 0 32px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(99,102,241,0.06) inset;
+  border-right: 1px solid rgba(99,102,241,0.06);
 }
 
 .ehr-sidebar-header {
-  padding: 1.5rem;
+  padding: 2rem;
   display: flex;
   align-items: center;
   gap: 0.75rem;
   border-bottom: 1px solid rgba(255,255,255,0.1);
+  background: linear-gradient(135deg, rgba(99,102,241,0.06) 0%, transparent 100%);
+  margin-bottom: 1rem;
 }
 
 .ehr-logo {
-  font-size: 1.75rem;
-  color: #fca5a5; /* Nurse accent color - Soft Red/Pink or maybe Yellow? Doctor was Yellow. Let's stick to simple. */
-  color: #fbbf24; 
+  font-size: 2rem;
+  color: #fbbf24;
+  filter: drop-shadow(0 4px 8px rgba(251,191,36,0.25));
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { filter: drop-shadow(0 4px 8px rgba(251,191,36,0.25)); }
+  50% { filter: drop-shadow(0 4px 12px rgba(251,191,36,0.45)); }
 }
 
 .ehr-sidebar-header h2 {
@@ -120,9 +129,15 @@ body {
 
 .ehr-sidebar nav {
   flex: 1;
-  padding: 1.5rem 1rem;
+  padding: 0 1rem;
   overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.2) transparent;
 }
+
+.ehr-sidebar nav::-webkit-scrollbar { width: 6px; }
+.ehr-sidebar nav::-webkit-scrollbar-track { background: transparent; }
+.ehr-sidebar nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 3px; }
 
 .ehr-sidebar nav ul {
   list-style: none;
@@ -132,83 +147,101 @@ body {
 }
 
 .ehr-sidebar nav ul li {
-  padding: 0.875rem 1rem;
-  border-radius: var(--radius-md);
-  color: var(--primary-200);
-  font-weight: 500;
-  cursor: pointer;
+  padding: 1rem 1.25rem;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  transition: all 0.2s;
+  gap: 1rem;
+  font-weight: 500;
+  font-size: 0.95rem;
+  color: #c7d2fe;
+  cursor: pointer;
+  border-radius: 12px;
+  transition: all 0.18s ease;
+  position: relative;
+  overflow: hidden;
 }
 
 .ehr-sidebar nav ul li:hover {
-  background: rgba(255,255,255,0.08);
+  background: linear-gradient(90deg, rgba(99,102,241,0.15), rgba(99,102,241,0.05));
   color: white;
+  transform: translateX(4px);
 }
 
 .ehr-sidebar nav ul li.active {
-  background: var(--primary-600);
+  background: linear-gradient(90deg, rgba(99,102,241,0.25), rgba(99,102,241,0.1));
   color: white;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  font-weight: 600;
+  border: 1px solid rgba(99,102,241,0.25);
+  box-shadow: 0 4px 12px rgba(99,102,241,0.18);
 }
 
 .ehr-sidebar-footer {
   padding: 1.5rem;
-  border-top: 1px solid rgba(255,255,255,0.1);
+  border-top: 1px solid rgba(255,255,255,0.08);
+  background: linear-gradient(0deg, rgba(0,0,0,0.06) 0%, transparent 100%);
 }
 
 .logout-btn {
-  width: 100%;
-  background: rgba(239, 68, 68, 0.2);
-  border: 1px solid rgba(239, 68, 68, 0.4);
+  background: linear-gradient(135deg, rgba(239,68,68,0.2), rgba(220,38,38,0.15));
+  border: 1px solid rgba(239,68,68,0.4);
   color: #fca5a5;
-  padding: 0.75rem;
-  border-radius: var(--radius-md);
-  font-weight: 600;
+  border-radius: 12px;
+  padding: 0.875rem;
+  width: 100%;
   cursor: pointer;
+  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  transition: all 0.2s;
+  gap: 0.75rem;
+  transition: all 0.18s ease;
+  position: relative;
+  overflow: hidden;
 }
 
-.logout-btn:hover {
-  background: rgba(239, 68, 68, 0.3);
-  color: white;
-}
+.logout-btn::before { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(239,68,68,0.28), rgba(220,38,38,0.2)); opacity: 0; transition: opacity 0.18s ease; }
+.logout-btn:hover { color: white; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(239,68,68,0.22); }
+.logout-btn:hover::before { opacity: 1; }
 
 /* --- Main Content Area --- */
 .ehr-main {
-  flex: 1;
+  margin-left: var(--sidebar-width);
+  width: calc(100% - var(--sidebar-width));
+  padding: 0.75rem;
+  height: 100vh;
+  overflow: hidden;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  min-width: 0;
-  height: 100%;
-  position: relative;
-  background: var(--bg-app);
 }
 
 /* Header */
 .ehr-header {
-  height: auto;
-  min-height: 80px;
-  padding: 1rem 1.5rem;
-  background: var(--bg-surface);
-  border-bottom: 1px solid var(--color-border);
+  background: linear-gradient(135deg, var(--bg-surface) 0%, #fafbfc 100%);
+  border-radius: var(--radius-lg);
+  padding: 0.875rem 1.25rem;
+  box-shadow: var(--shadow-md);
+  margin-bottom: 0.75rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  border: 1px solid var(--color-border);
+  max-width: 100%;
   flex-shrink: 0;
   z-index: 40;
+  transition: box-shadow 0.18s ease;
 }
 
+.ehr-header:hover { box-shadow: var(--shadow-lg); }
+
 .header-left h1 {
-  font-size: 1.5rem;
+  font-size: 1.3rem;
   font-weight: 700;
-  color: var(--slate-800);
+  color: var(--color-text-main);
+  line-height: 1.2;
+  background: linear-gradient(135deg, var(--color-primary), var(--primary-400));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .user-role {
@@ -219,20 +252,25 @@ body {
 
 .header-right {
   display: flex;
+  gap: 0.625rem;
   align-items: center;
-  gap: 1rem;
 }
 
 /* --- Badges & Indicators --- */
 .status-badge {
-  display: inline-flex;
+  display: flex !important;
+  flex-direction: row !important;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.4rem 0.875rem;
+  justify-content: center;
+  min-width: max-content;
+  padding: 0.5rem 1rem;
   border-radius: 9999px;
-  font-size: 0.875rem;
+  font-size: 0.85rem;
   font-weight: 600;
-  white-space: nowrap;
+  white-space: nowrap !important;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
 }
 
 .status-badge.network { background: var(--success-light); color: var(--success-dark); }
@@ -250,9 +288,12 @@ body {
 /* --- Content Wrapper (Scrollable) --- */
 .ehr-content-wrapper {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 1.5rem;
+  padding: 1rem 0.5rem;
+  display: flex;
+  flex-direction: column;
 }
 
 /* =========================================
